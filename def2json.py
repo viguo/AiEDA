@@ -61,6 +61,22 @@ if __name__=='__main__':
                     else:
                         singlePin.append(line1)
 
+'''
+                       inFile = open("data.txt")
+                        outFile = open("result.txt", "w")
+                        buffer = []
+                        for line in inFile:
+                            if line.startswith("Start"):
+                                buffer = ['']
+                            elif line.startswith("End"):
+                                outFile.write("".join(buffer))
+                                buffer = []
+                            elif buffer:
+                                buffer.append(line)
+                        inFile.close()
+                        outFile.close()
+'''
+
     #with open('pin.json', 'r') as fp:
     #   output = json.load(fp)
 
