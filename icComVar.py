@@ -52,11 +52,11 @@ pinUse       = pp.oneOf("SIGNAL POWER GROUND CLOCK TIEOFF ANALOG SCAN RESET")
 propObjType  = pp.oneOf("COMPONENT COMPONENTPIN DESIGN GROUP NET NONDEFAULTRULE REGION ROW SPECIALNET")
 propType     = pp.oneOf("INTERGER REAL STRING")
 objectType   = pp.oneOf("DESIGN COMPONENT NET SPECIALNET GROUP ROW COMPONENT REGION")
-pinAttrName      = pp.oneOf("NET SPECIA DIRECTION  NETEXPR SUPPLYSENSITIVITY GROUNDSENSITIVITY USE ANTENNAPINMAXAREACAR ANTENNAPINMAXCUTCAR ANTENNAPINDIFFAREA ANTENNAMODEL ANTENNAPINGATEAREA ANTENNAPINPARTIALMETALAREA ANTENNAPINPARTIALMETALAREA ANTENNAPINPARTIALCUTAREA")
+pinAttrName  = pp.oneOf("NET SPECIAL DIRECTION  NETEXPR SUPPLYSENSITIVITY GROUNDSENSITIVITY USE ANTENNAPINMAXAREACAR ANTENNAPINMAXCUTCAR ANTENNAPINDIFFAREA ANTENNAMODEL ANTENNAPINGATEAREA ANTENNAPINPARTIALMETALAREA ANTENNAPINPARTIALMETALAREA ANTENNAPINPARTIALCUTAREA")
 routeBkgAttr = pp.oneOf("SLOTS FILLS PUSHDOWN EXCEPTPGNET COMPONENT SPACING DESIGNRULEWIDTH MASK")
 cellBkgAttr  = pp.oneOf("SOFT PARTIAL COMPONENT PUSHDOWN")
 extAttr      = pp.oneOf("CREATOR DATE REVISION")
-shapeType   = pp.oneOf("RECT POLYGON")
+shapeType    = pp.oneOf("RECT POLYGON")
 netAttr      = pp.oneOf("SHIELDNET XTALK NONDEFAULTRULE SOURCE FIXEDBUMP FREQUENCY ORIGINAL USE PATTERN ESTCAP WEIGHT")
 netSource    = pp.oneOf("NETLIST DIST USER TIMING")
 netPattern   = pp.oneOf("BALANCED STEINER TRUNK WIREDLOGIC")
@@ -238,35 +238,25 @@ ndrSect = pp.Group("NONDEFAULTRULES" + intNum + SEMICOLON + pp.OneOrMore(ndrDefi
 
 
 #PIN SECTION
-portLayerDefine = pp.Group(PLUS + "LAYER" + layerName +
-                           pp.Optional("MASK" + intNum) +
-                           pp.Optional("SPACING" + intNum) +
-                           pp.Optional("DESIGNRULEWIDTH" + intNum) +
-                           rectangle
-                           )
-portPolygonDefine = pp.Group(PLUS + "POLYGON" + layerName +
-                             pp.Optional("MASK" + intNum) +
-                             pp.Optional("SPACING" + intNum) +
-                             pp.Optional("DESIGNRULEWIDTH" + intNum) +
+shapeAttr = pp.oneOf("MASK SPACING DESIGNRULEWIDTH")
+portShape = pp.Group(PLUS + pp.oneOf("POLYGON LAYER VIA") + layerName +
+                             pp.ZeroOrMore(shapeAttr + intNum) +
                              polygon)
-portViaDefine = pp.Group(PLUS + "VIA" + hierName +
+portVia = pp.Group(PLUS + "VIA" + hierName +
                          pp.Optional("MASK" + intNum) +
                          orig
                          )
-portStatDefine = pp.Group(placeStatus + orig + orient)
+portStatus = pp.Group(PLUS + placeStatus + orig + orient)
 
 portDefine = pp.Group(pp.Optional(PLUS + "PORT") +
-                      pp.Optional(portLayerDefine) +
-                      pp.Optional(portPolygonDefine) +
-                      pp.Optional(portViaDefine) +
-                      pp.Optional(portStatDefine)
+                      pp.Optional(portShape) +
+                      pp.Optional(portStatus)
                       )
 portAttr = pp.Group(PLUS + pinAttrName + pp.Optional(hierName))
 
-
 pinDefine = pp.Group(DASH + hierName +
-                     portAttrDefine +
-                     pp.Optional(portDefine)
+                     pp.OneOrMore(portAttr) +
+                     pp.ZeroOrMore(portDefine)
                      )
 #PINPROPERTIES
 pinProperty     = pp.Group( DASH + namePair + pp.ZeroOrMore(proptyDef) + SEMICOLON)

@@ -28,15 +28,7 @@ def get_values(lVals):
             return val
 
 def pattern_match(pattern,target_string):
-    #print "pattern:", pattern,target_string
     result = pattern.searchString(target_string).asList()
-    #print "result:", result
-    #new_result = list_flatten(result)
-    #new1_result = filter(lambda x: type(x) == str, new_result)
-    #for l in new_result:
-    #    print l, type(l)
-    #print new1_result
-    #return new1_result
     return result
 
 if __name__=='__main__':
