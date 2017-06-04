@@ -33,49 +33,42 @@ def pattern_match(pattern,target_string):
 
 if __name__=='__main__':
     defFile = 'C:/parser_case/Place.def'
-    defFile = fi.FileInput(defFile, openhook=fi.hook_compressed)
+    defFP = fi.FileInput(defFile, openhook=fi.hook_compressed)
     p = Pool(4)
-    for line0 in defFile:
-        if line0.find('PINS') == 0:
+    for line0 in defFP:
+        if line0.startswith('PINS'):
             allPin = []
             singlePin = []
-            for line1 in defFile:
-                if line1.find('END PINS') == 0:
-                    print "start to match pins", len(allPin)
+            print "Reading PINS"
+            for line1 in defFP:
+                if line1.startswith('END PINS'):
+                    print "Analyzing pins", len(allPin)
                     results = [p.apply_async(pattern_match, args=(icVar.pinDefine, pin)) for pin in allPin]
                     output = [pt.get() for pt in results]
-                    #print output
+                    # print output
                     p.close()
                     p.join()
                     print len(output), type(output), output[0]
-                    #with open('pin.json', 'w') as fp:
+                    # with open('pin.json', 'w') as fp:
                     #   json.dump(output, fp)
-                    #fp.close()
+                    # fp.close()
                     break
-                else:
-                    if line1.find(';') > -1:
-                        singlePin.append(line1)
+                elif line1.startswith(" -"):
+                    singlePin.append(line1)
+                    if line1.endswith(';'):
                         singlePinString = ''.join(singlePin)
                         allPin.append(singlePinString)
                         singlePin = []
-                    else:
-                        singlePin.append(line1)
-
-'''
-                       inFile = open("data.txt")
-                        outFile = open("result.txt", "w")
-                        buffer = []
-                        for line in inFile:
-                            if line.startswith("Start"):
-                                buffer = ['']
-                            elif line.startswith("End"):
-                                outFile.write("".join(buffer))
-                                buffer = []
-                            elif buffer:
-                                buffer.append(line)
-                        inFile.close()
-                        outFile.close()
-'''
+                elif line1.endswith(';'):
+                    singlePin.append(line1)
+                    singlePinString = ''.join(singlePin)
+                    allPin.append(singlePinString)
+                    singlePin = []
+                elif len(singlePin) > 0:
+                    singlePin.append(line1)
+                else:
+                    print "Read Pin Error:", line1
+            print allPin
 
     #with open('pin.json', 'r') as fp:
     #   output = json.load(fp)
