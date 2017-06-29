@@ -239,14 +239,13 @@ ndrSect = pp.Group("NONDEFAULTRULES" + intNum + SEMICOLON + pp.OneOrMore(ndrDefi
 
 #PIN SECTION
 shapeAttr = pp.oneOf("MASK SPACING DESIGNRULEWIDTH")
+'''
 portShape = pp.Group(PLUS + pp.oneOf("POLYGON LAYER VIA") + layerName +
                              pp.ZeroOrMore(shapeAttr + intNum) +
                              polygon)
-portVia = pp.Group(PLUS + "VIA" + hierName +
-                         pp.Optional("MASK" + intNum) +
-                         orig
-                         )
-portStatus = pp.Group(PLUS + placeStatus + orig + orient)
+'''
+portShape  = pp.Group(PLUS + "LAYER" + layerName + polygon)
+portStatus = pp.Group(PLUS + "PLACED" + orig + orient)
 
 portDefine = pp.Group(pp.Optional(PLUS + "PORT") +
                       pp.Optional(portShape) +
@@ -254,9 +253,18 @@ portDefine = pp.Group(pp.Optional(PLUS + "PORT") +
                       )
 portAttr = pp.Group(PLUS + pinAttrName + pp.Optional(hierName))
 
+'''
+
 pinDefine = pp.Group(DASH + hierName +
                      pp.OneOrMore(portAttr) +
-                     pp.ZeroOrMore(portDefine)
+                     pp.OneOrMore(portDefine) +
+                     SEMICOLON
+                     )
+'''
+pinDefine = pp.Group(DASH + hierName +
+                     pp.OneOrMore(portAttr) +
+                     portDefine +
+                     SEMICOLON
                      )
 #PINPROPERTIES
 pinProperty     = pp.Group( DASH + namePair + pp.ZeroOrMore(proptyDef) + SEMICOLON)

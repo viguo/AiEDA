@@ -28,7 +28,11 @@ def get_values(lVals):
             return val
 
 def pattern_match(pattern,target_string):
-    result = pattern.searchString(target_string).asList()
+    #print len(target_string)
+    #print pattern
+    #print target_string
+    result = pattern.searchString(target_string).aslist()
+    print result
     return result
 
 if __name__=='__main__':
@@ -43,20 +47,27 @@ if __name__=='__main__':
                 if line1.find('END PINS') == 0:
                     print "start to match pins", len(allPin)
                     results = [p.apply_async(pattern_match, args=(icVar.pinDefine, pin)) for pin in allPin]
-                    output = [pt.get() for pt in results]
+                    #print results
+                    #output = [pt.get() for pt in results]
+                    #for pt in results:
+                    #   print type(pt),pt.get()
                     #print output
                     p.close()
                     p.join()
-                    print len(output), type(output), output[0]
+                    #print len(output), type(output), output[0]
                     #with open('pin.json', 'w') as fp:
                     #   json.dump(output, fp)
                     #fp.close()
+                    print "Finished Parsing PINS"
                     break
                 else:
                     if line1.find(';') > -1:
                         singlePin.append(line1)
                         singlePinString = ''.join(singlePin)
-                        allPin.append(singlePinString)
+                        if singlePinString.find("PORT") > 0:
+                            print "Multi port", len(singlePinString)
+                        else:
+                            allPin.append(singlePinString)
                         singlePin = []
                     else:
                         singlePin.append(line1)
