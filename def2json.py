@@ -30,10 +30,31 @@ def get_values(lVals):
 def pattern_match(pattern,target_string):
     #print len(target_string)
     #print pattern
-    #print target_string
-    result = pattern.searchString(target_string).aslist()
-    print result
+
+    #print target_string,pattern
+    result = pattern.searchString(target_string)
+    #print result
     return result
+
+def pin2dict(pin):
+    pinList = pin.split("+")
+    pinName = pinList[0].split()[1]
+    for i in range(1,len(pinList)):
+        pinAttr =  pinList[i].split()
+        if len(pinAttr) == 2 :
+            attrKey = pinAttr[0]
+            attrVal = pinAttr[1]
+            #print "pin attribute ",attrKey, attrVal
+        #elif pinAttr[0] is "LAYER" :
+        elif re.match("LAYER", pinAttr[0]) > 0:
+            print type(pinList[i]),pinList[i]
+            #result = pattern_match(icVar.portShape,pinList[i]
+            result = icVar.portShape.searchString(pinList[i])
+            print result
+            #print result
+
+
+
 
 if __name__=='__main__':
     defFile = 'C:/parser_case/Place.def'
@@ -46,14 +67,20 @@ if __name__=='__main__':
             for line1 in defFile:
                 if line1.find('END PINS') == 0:
                     print "start to match pins", len(allPin)
-                    results = [p.apply_async(pattern_match, args=(icVar.pinDefine, pin)) for pin in allPin]
+                    for pin in allPin:
+                        #print pin
+                        #pattern_match(icVar.pinDefine,pin)
+                        pin2dict(pin)
+
+
+                    #results = [p.apply_async(pattern_match, args=(icVar.pinDefine, pin)) for pin in allPin]
                     #print results
                     #output = [pt.get() for pt in results]
                     #for pt in results:
                     #   print type(pt),pt.get()
                     #print output
-                    p.close()
-                    p.join()
+                    #p.close()
+                    #p.join()
                     #print len(output), type(output), output[0]
                     #with open('pin.json', 'w') as fp:
                     #   json.dump(output, fp)
@@ -62,7 +89,7 @@ if __name__=='__main__':
                     break
                 else:
                     if line1.find(';') > -1:
-                        singlePin.append(line1)
+                        singlePin.append(line1.strip())
                         singlePinString = ''.join(singlePin)
                         if singlePinString.find("PORT") > 0:
                             print "Multi port", len(singlePinString)
@@ -70,7 +97,7 @@ if __name__=='__main__':
                             allPin.append(singlePinString)
                         singlePin = []
                     else:
-                        singlePin.append(line1)
+                        singlePin.append(line1.strip())
 
 '''
                        inFile = open("data.txt")

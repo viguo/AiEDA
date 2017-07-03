@@ -52,7 +52,8 @@ pinUse       = pp.oneOf("SIGNAL POWER GROUND CLOCK TIEOFF ANALOG SCAN RESET")
 propObjType  = pp.oneOf("COMPONENT COMPONENTPIN DESIGN GROUP NET NONDEFAULTRULE REGION ROW SPECIALNET")
 propType     = pp.oneOf("INTERGER REAL STRING")
 objectType   = pp.oneOf("DESIGN COMPONENT NET SPECIALNET GROUP ROW COMPONENT REGION")
-pinAttrName  = pp.oneOf("NET SPECIAL DIRECTION  NETEXPR SUPPLYSENSITIVITY GROUNDSENSITIVITY USE ANTENNAPINMAXAREACAR ANTENNAPINMAXCUTCAR ANTENNAPINDIFFAREA ANTENNAMODEL ANTENNAPINGATEAREA ANTENNAPINPARTIALMETALAREA ANTENNAPINPARTIALMETALAREA ANTENNAPINPARTIALCUTAREA")
+#pinAttrName  = pp.oneOf("NET SPECIAL DIRECTION  NETEXPR SUPPLYSENSITIVITY GROUNDSENSITIVITY USE ANTENNAPINMAXAREACAR ANTENNAPINMAXCUTCAR ANTENNAPINDIFFAREA ANTENNAMODEL ANTENNAPINGATEAREA ANTENNAPINPARTIALMETALAREA ANTENNAPINPARTIALMETALAREA ANTENNAPINPARTIALCUTAREA")
+pinAttrName  = pp.oneOf("NET  DIRECTION  USE")
 routeBkgAttr = pp.oneOf("SLOTS FILLS PUSHDOWN EXCEPTPGNET COMPONENT SPACING DESIGNRULEWIDTH MASK")
 cellBkgAttr  = pp.oneOf("SOFT PARTIAL COMPONENT PUSHDOWN")
 extAttr      = pp.oneOf("CREATOR DATE REVISION")
@@ -72,9 +73,9 @@ rectangle    = pp.Group(orig + orig)
 polygon      = pp.Group(orig + pp.OneOrMore(orig))
 
 # Process Varible
-layerName    = pp.oneOf("M0 M1 M2 M3 M4 M5 M6 M7 M8 M10 M11 M12 VIA0 VIA1 VIA2 VIA3 VIA4 VIA5 VIA6 VIA7 VIA8 VIA10 VIA11 VIA12")
-metalName    = pp.oneOf("M0 M1 M2 M3 M4 M5 M6 M7 M8 M10 M11 M12")
-cutName      = pp.oneOf("VIA0 VIA1 VIA2 VIA3 VIA4 VIA5 VIA6 VIA7 VIA8 VIA10 VIA11 VIA12")
+layerName    = pp.oneOf("M0 M1 M2 M3 M4 M5 M6 M7 M8 M9 M10 M11 M12 VIA0 VIA1 VIA2 VIA3 VIA4 VIA5 VIA6 VIA7 VIA8 VIA9 VIA10 VIA11 VIA12")
+metalName    = pp.oneOf("M0 M1 M2 M3 M4 M5 M6 M7 M8 M9 M10 M11 M12")
+cutName      = pp.oneOf("VIA0 VIA1 VIA2 VIA3 VIA4 VIA5 VIA6 VIA7 VIA8 VIA9 VIA10 VIA11 VIA12")
 
 #DEF Pattern
 '''
@@ -244,26 +245,33 @@ portShape = pp.Group(PLUS + pp.oneOf("POLYGON LAYER VIA") + layerName +
                              pp.ZeroOrMore(shapeAttr + intNum) +
                              polygon)
 '''
-portShape  = pp.Group(PLUS + "LAYER" + layerName + polygon)
-portStatus = pp.Group(PLUS + "PLACED" + orig + orient)
+#portShape  = pp.Group(PLUS + "LAYER" + layerName + rectangle)
+portShape  = pp.Group("LAYER" + layerName + rectangle)
+portStatus = pp.Group(PLUS + "FIXED" + orig + orient)
 
-portDefine = pp.Group(pp.Optional(PLUS + "PORT") +
-                      pp.Optional(portShape) +
+#portDefine = pp.Group(pp.Optional(PLUS + "PORT") +
+#                      pp.Optional(portShape) +
+#                      pp.Optional(portStatus)
+#                      )
+
+
+portDefine = pp.Group(pp.Optional(portShape) +
                       pp.Optional(portStatus)
                       )
-portAttr = pp.Group(PLUS + pinAttrName + pp.Optional(hierName))
+
+#portAttr = pp.Group(PLUS + pinAttrName + pp.Optional(hierName))
+portAttr = pp.Group(PLUS + flatName + hierName)
 
 '''
 
 pinDefine = pp.Group(DASH + hierName +
                      pp.OneOrMore(portAttr) +
-                     pp.OneOrMore(portDefine) +
-                     SEMICOLON
-                     )
+                      )
 '''
 pinDefine = pp.Group(DASH + hierName +
-                     pp.OneOrMore(portAttr) +
-                     portDefine +
+                     pp.OneOrMore( portAttr) +
+                     portShape +
+                     portStatus +
                      SEMICOLON
                      )
 #PINPROPERTIES
