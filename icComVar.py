@@ -247,7 +247,7 @@ portShape = pp.Group(PLUS + pp.oneOf("POLYGON LAYER VIA") + layerName +
 '''
 #portShape  = pp.Group(PLUS + "LAYER" + layerName + rectangle)
 portShape  = pp.Group("LAYER" + layerName + rectangle)
-portStatus = pp.Group(PLUS + "FIXED" + orig + orient)
+portStatus = pp.Group( placeStatus + orig + orient)
 
 #portDefine = pp.Group(pp.Optional(PLUS + "PORT") +
 #                      pp.Optional(portShape) +

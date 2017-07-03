@@ -17,16 +17,16 @@ NDR => {$ruleName}  = [$ndr ]
 COMP => {$instName} =>
             [$status $orig $orient]
 
-PIN => {$pinName} =>
-        => {NET}
-        => {DIRECTION}
-        => {USE}
-        => {$termName}
-			{LAYER}  =  
-			{SHAPE} =
-			{STATUS} = 
-			{LOCATION}=
-			{ORITATION} = 			
+pinHash => {$pinName} =>
+			=> {NET}
+			=> {DIRECTION}
+			=> {USE}
+			=> {$termName}
+				{LAYER}  =  
+				{SHAPE} =
+				{STATUS} = 
+				{LOCATION}=
+				{ORITATION} = 			
 
 BKG => {$bkgName} =>
         => ["layer spacing polygon"]
