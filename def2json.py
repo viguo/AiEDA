@@ -49,7 +49,7 @@ def pin2dict(pin,pinHash):
             j = j + 1
             termName = 'term_' + str(j)
             result = pattern_match(icVar.portShape,pinList[i])
-            print pinName,termName
+            #print pinName,termName
             pinHash[pinName][termName] = {}
             pinHash[pinName][termName]["LAYER"] = result[0][0][1]
             pinHash[pinName][termName]["SHAPE"] = result[0][0][2]
@@ -58,9 +58,28 @@ def pin2dict(pin,pinHash):
             pinHash[pinName][termName]["STATUS"] = result[0][0][0]
             pinHash[pinName][termName]["LOCATION"] = result[0][0][1]
             pinHash[pinName][termName]["ORITATION"] = result[0][0][2]
-        else:
-            print "no matched", pinList[i]
+        #else:
+            # "no matched", pinList[i]
 
+def  comp2dict(comp,compHash):
+    result = pattern_match(icVar.compDefine,comp)
+    #print "result", result
+    instName = result[0][0][0]
+    refName = result[0][0][1]
+    status = result[0][0][2][0]
+    location = result[0][0][2][1]
+    oritation = result[0][0][2][2]
+    compHash[instName]= {}
+    compHash[instName]["REFNAME"] = refName
+    compHash[instName]["STATUS"] = status
+    compHash[instName]["LOCATION"] = location
+    compHash[instName]["ORITATION"] = oritation
+    if len(result[0][0]) > 3:
+        for i in range(3,len(result[0][0]),2 ):
+            #print "key value i ",i, result[0][0][i], result[0][0][i+1]
+            key = result[0][0][i]
+            value = result[0][0][i+1]
+            compHash[instName][key] = value
 
 
 
@@ -77,19 +96,7 @@ if __name__=='__main__':
                     print "start to match pins", len(allPin)
                     pinHash = {}
                     for pin in allPin:
-                        #print pin
-                        #pattern_match(icVar.pinDefine,pin)
                         pin2dict(pin,pinHash)
-                        #p.apply_async(pin2dict, args=(pin,pinHash))
-                    #results = [p.apply_async(pattern_match, args=(icVar.pinDefine, pin)) for pin in allPin]
-                    #print results
-                    #output = [pt.get() for pt in results]
-                    #for pt in results:
-                    #   print type(pt),pt.get()
-                    #print output
-                    #p.close()
-                    #p.join()
-                    #print len(output), type(output), output[0]
                     with open('pin.json', 'w') as fp:
                        json.dump(pinHash,fp,indent=1)
                     fp.close()
@@ -103,6 +110,30 @@ if __name__=='__main__':
                         singlePin = []
                     else:
                         singlePin.append(line1.strip())
+        elif line0.find("COMPONENTS") == 0:
+            allComp = []
+            singleComp = []
+            for line1 in defFile:
+                if line1.find('END COMPONENTS') == 0:
+                    print "start to match COMPONENT"
+                    compHash = {}
+                    for comp in allComp:
+                        comp2dict(comp,compHash)
+                        #p.apply_async(comp2dict, args=(comp, compHash))
+                    with open('comp.json','w') as fp:
+                        json.dump(compHash,fp,indent=1)
+                    fp.close()
+                    print "Finished Parsing COMP"
+                    break
+                else:
+                    if line1.find(';') > -1:
+                        singleComp.append(line1.strip())
+                        singleCompString = ''.join(singleComp)
+                        allComp.append(singleCompString)
+                        singleComp = []
+                    else:
+                        singleComp.append(line1.strip())
+
 
 '''
                        inFile = open("data.txt")

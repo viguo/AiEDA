@@ -14,8 +14,12 @@ VIAS => {$viaName} =>
 
 NDR => {$ruleName}  = [$ndr ]
 
-COMP => {$instName} =>
-            [$status $orig $orient]
+compHash => {$instName} =>
+                => {STATUS} = ""
+                => {REFNAME} = ""
+                => {LOCATION} = ""
+                => {ORITATION} = ""
+                => {HALO} = rectangle
 
 pinHash => {$pinName} =>
 			=> {NET}
