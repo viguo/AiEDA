@@ -81,11 +81,18 @@ def  comp2dict(comp,compHash):
             value = result[0][0][i+1]
             compHash[instName][key] = value
 
-def bkg2dict(bkg,bkgHash):
-    result = pattern_match(icVar.)
+def bkg2dict(bkg,bkgHash,type):
+    bkgList = bkg.split("+")
+    result = pattern_match(icVar.bkgType,bkgList[0])
+    bkgName = "bkg_" + str(len(bkgHash[type]))
+    bkgHash[type][bkgName] = {}
+    bkgHash[type][bkgName]["SHAPE"] = bkgList[1]
+    print  bkgHash
+    # restructure the bgk
+
 
 if __name__=='__main__':
-    defFile = 'C:/parser_case/Place.def'
+    defFile = 'C:/parser_case/Place.tiny.def'
     defFile = fi.FileInput(defFile, openhook=fi.hook_compressed)
     p = Pool(4)
     allItem = []
@@ -99,6 +106,7 @@ if __name__=='__main__':
                     for pin in allItem:
                         pin2dict(pin,pinHash)
                     allItem = []
+                    singleItem = []
                     with open('pin.json', 'w') as fp:
                        json.dump(pinHash,fp,indent=1)
                     fp.close()
@@ -120,6 +128,7 @@ if __name__=='__main__':
                     for comp in allItem:
                         comp2dict(comp,compHash)
                     allItem = []
+                    singleItem = []
                         #p.apply_async(comp2dict, args=(comp, compHash))
                     with open('comp.json','w') as fp:
                         json.dump(compHash,fp,indent=1)
@@ -136,15 +145,23 @@ if __name__=='__main__':
                         singleItem.append(line1.strip())
         elif  line0.find("BLOCKAGES") == 0:
             for line1 in defFile:
-                if line1.find('END BLOCKAGE'):
+                if line1.find('END BLOCKAGES') == 0:
                     print "start to match Blockage"
                     bkgHash = {}
+                    bkgHash["ROUTE"] = {}
+                    bkgHash["PLACEMENT"] = {}
                     for bkg in allItem:
-                        bkg2dict(bkg,bkgHash)
+                        if re.match("LAYER", bkg) > 0:
+                            bkg2dict(bkg,bkgHash,"ROUTE")
+                        else:
+                            bkg2dict(bkg,bkgHash,"PLACEMENT")
+                    allItem = []
+                    singleItem = []
+                    print bkgHash
                     with open('bkg.json','w') as fp:
                         json.dump(bkgHash,fp,indect=1)
                     fp.close()
-                    print "Finshed Parsing BKG"
+                    print "Finished parsing Blockage"
                     break
                 else:
                     if line1.find(";") > -1:
@@ -153,11 +170,7 @@ if __name__=='__main__':
                         allItem.append(singleCompString)
                         singleItem = []
                     else:
-                        singleItem.append(line1.strip())
-
-
-
-
+                        singleItem.append(line1.strip()+" + ")
     #with open('pin.json', 'r') as fp:
     #   output = json.load(fp)
 

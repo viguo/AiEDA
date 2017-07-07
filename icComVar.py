@@ -55,7 +55,8 @@ objectType   = pp.oneOf("DESIGN COMPONENT NET SPECIALNET GROUP ROW COMPONENT REG
 #pinAttrName  = pp.oneOf("NET SPECIAL DIRECTION  NETEXPR SUPPLYSENSITIVITY GROUNDSENSITIVITY USE ANTENNAPINMAXAREACAR ANTENNAPINMAXCUTCAR ANTENNAPINDIFFAREA ANTENNAMODEL ANTENNAPINGATEAREA ANTENNAPINPARTIALMETALAREA ANTENNAPINPARTIALMETALAREA ANTENNAPINPARTIALCUTAREA")
 pinAttrName  = pp.oneOf("NET  DIRECTION  USE")
 routeBkgAttr = pp.oneOf("SLOTS FILLS PUSHDOWN EXCEPTPGNET COMPONENT SPACING DESIGNRULEWIDTH MASK")
-cellBkgAttr  = pp.oneOf("SOFT PARTIAL COMPONENT PUSHDOWN")
+cellBkgAttr  = pp.oneOf("SOFT PARTIAL COMPONENT PUSHDOWN ")
+bkgAttr = pp.oneOf("SLOTS FILLS PUSHDOWN EXCEPTPGNET COMPONENT SPACING DESIGNRULEWIDTH MASK SOFT PARTIAL COMPONENT PUSHDOWN ")
 extAttr      = pp.oneOf("CREATOR DATE REVISION")
 shapeType    = pp.oneOf("RECT POLYGON")
 netAttr      = pp.oneOf("SHIELDNET XTALK NONDEFAULTRULE SOURCE FIXEDBUMP FREQUENCY ORIGINAL USE PATTERN ESTCAP WEIGHT")
@@ -119,20 +120,22 @@ compMaskShift = pp.Group("COMPONENTMASKSHIFT " + pp.OneOrMore(layerName))
 maskShift = pp.Group("MASKSHIFT" + intNum)
 
 # Blockages
-layerBkg = pp.Group(DASH + "LAYER" + layerName +
-                    pp.Optional(routeBkgAttr + pp.Optional(hierName)) +
-                    pp.OneOrMore(pp.oneOf("RECT POLYGON") + polygon) +
-                    SEMICOLON
-                    )
-cellBkg = pp.Group(DASH + "PLACEMENT" +
-                   pp.Optional(cellBkgAttr + pp.Optional(hierName)) +
-                   pp.OneOrMore("RECT" + polygon) +
+#layerBkg = pp.Group(DASH + "LAYER" + layerName +
+#                    pp.Optional(routeBkgAttr + pp.Optional(hierName)) +
+#                    pp.OneOrMore(pp.oneOf("RECT POLYGON") + polygon) +
+#                    SEMICOLON
+#                    )
+bkgType = pp.Group(DASH + pp.oneOf("PLACEMENT LAYER") + pp.Optional(layerName))
+
+cellBkg = pp.Group(DASH + pp.oneOf("PLACEMENT LAYER") + pp.Optional(layerName) + PLUS +
+                   pp.Optional(bkgAttr+ pp.Optional(hierName)) +
+                   pp.OneOrMore(pp.oneOf("RECT POLYGON") + polygon) +
                    SEMICOLON
                    )
-bkgSect = pp.Group("BLOCKAGES" + intNum +
-                   pp.ZeroOrMore(layerBkg) +
-                   pp.ZeroOrMore(cellBkg)
-                   )
+#bkgSect = pp.Group("BLOCKAGES" + intNum +
+#                   pp.ZeroOrMore(layerBkg) +
+#                   pp.ZeroOrMore(cellBkg)
+#                   )
 # Bus Bit Characters
 busbitchars     =  pp.Group("BUSBITCHARS" + pp.delimitedList(dquotes) + SEMICOLON)
 # COMPONENTMASKSHIFT

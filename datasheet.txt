@@ -32,10 +32,12 @@ pinHash => {$pinName} =>
 				{LOCATION}=
 				{ORITATION} = 			
 
-bkgHash => {$bkgName} =>
-                 => {TYPE}
-                 => {SHAPE}
-
+bkgHash => {ROUTE} => {$rgName} =>
+                             => {SHAPE}
+                             => {LAYER}
+                             => {ATTR}
+           {PLACEMENT} => {$pkgName} =>
+                            => {SHAPE}
 
 ##Net Section is hard to support
 NET => {$netName} =>
