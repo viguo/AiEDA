@@ -176,7 +176,7 @@ fillVia     = pp.Group(DASH + "VIA" + cutName + pp.Optional(PLUS + "MASK" + intN
                        )
 fillSect    = pp.Group("FILLS" + intNum + SEMICOLON +
                         pp.ZeroOrMore(fillLayer) +
-                       pp.ZeroOrMore(fillVia) +
+                        pp.ZeroOrMore(fillVia) +
                        "END FILLS"
                        )
 

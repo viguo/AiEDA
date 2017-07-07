@@ -81,22 +81,24 @@ def  comp2dict(comp,compHash):
             value = result[0][0][i+1]
             compHash[instName][key] = value
 
-
+def bkg2dict(bkg,bkgHash):
+    result = pattern_match(icVar.)
 
 if __name__=='__main__':
     defFile = 'C:/parser_case/Place.def'
     defFile = fi.FileInput(defFile, openhook=fi.hook_compressed)
     p = Pool(4)
+    allItem = []
+    singleItem = []
     for line0 in defFile:
         if line0.find('PINS') == 0:
-            allPin = []
-            singlePin = []
             for line1 in defFile:
                 if line1.find('END PINS') == 0:
-                    print "start to match pins", len(allPin)
+                    print "start to match pins", len(allItem)
                     pinHash = {}
-                    for pin in allPin:
+                    for pin in allItem:
                         pin2dict(pin,pinHash)
+                    allItem = []
                     with open('pin.json', 'w') as fp:
                        json.dump(pinHash,fp,indent=1)
                     fp.close()
@@ -104,21 +106,20 @@ if __name__=='__main__':
                     break
                 else:
                     if line1.find(';') > -1:
-                        singlePin.append(line1.strip())
-                        singlePinString = ''.join(singlePin)
-                        allPin.append(singlePinString)
+                        singleItem.append(line1.strip())
+                        singlePinString = ''.join(singleItem)
+                        allItem.append(singlePinString)
                         singlePin = []
                     else:
-                        singlePin.append(line1.strip())
+                        singleItem.append(line1.strip())
         elif line0.find("COMPONENTS") == 0:
-            allComp = []
-            singleComp = []
             for line1 in defFile:
                 if line1.find('END COMPONENTS') == 0:
                     print "start to match COMPONENT"
                     compHash = {}
-                    for comp in allComp:
+                    for comp in allItem:
                         comp2dict(comp,compHash)
+                    allItem = []
                         #p.apply_async(comp2dict, args=(comp, compHash))
                     with open('comp.json','w') as fp:
                         json.dump(compHash,fp,indent=1)
@@ -127,29 +128,35 @@ if __name__=='__main__':
                     break
                 else:
                     if line1.find(';') > -1:
-                        singleComp.append(line1.strip())
-                        singleCompString = ''.join(singleComp)
-                        allComp.append(singleCompString)
-                        singleComp = []
+                        singleItem.append(line1.strip())
+                        singleCompString = ''.join(singleItem)
+                        allItem.append(singleCompString)
+                        singleItem = []
                     else:
-                        singleComp.append(line1.strip())
+                        singleItem.append(line1.strip())
+        elif  line0.find("BLOCKAGES") == 0:
+            for line1 in defFile:
+                if line1.find('END BLOCKAGE'):
+                    print "start to match Blockage"
+                    bkgHash = {}
+                    for bkg in allItem:
+                        bkg2dict(bkg,bkgHash)
+                    with open('bkg.json','w') as fp:
+                        json.dump(bkgHash,fp,indect=1)
+                    fp.close()
+                    print "Finshed Parsing BKG"
+                    break
+                else:
+                    if line1.find(";") > -1:
+                        singleItem.append(line1.strip())
+                        singleCompString = ''.join(singleItem)
+                        allItem.append(singleCompString)
+                        singleItem = []
+                    else:
+                        singleItem.append(line1.strip())
 
 
-'''
-                       inFile = open("data.txt")
-                        outFile = open("result.txt", "w")
-                        buffer = []
-                        for line in inFile:
-                            if line.startswith("Start"):
-                                buffer = ['']
-                            elif line.startswith("End"):
-                                outFile.write("".join(buffer))
-                                buffer = []
-                            elif buffer:
-                                buffer.append(line)
-                        inFile.close()
-                        outFile.close()
-'''
+
 
     #with open('pin.json', 'r') as fp:
     #   output = json.load(fp)

@@ -32,9 +32,9 @@ pinHash => {$pinName} =>
 				{LOCATION}=
 				{ORITATION} = 			
 
-BKG => {$bkgName} =>
-        => ["layer spacing polygon"]
-
+bkgHash => {$bkgName} =>
+                 => {TYPE}
+                 => {SHAPE}
 
 
 ##Net Section is hard to support
