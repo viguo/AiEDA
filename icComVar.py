@@ -125,7 +125,11 @@ maskShift = pp.Group("MASKSHIFT" + intNum)
 #                    pp.OneOrMore(pp.oneOf("RECT POLYGON") + polygon) +
 #                    SEMICOLON
 #                    )
-bkgType = pp.Group(DASH + pp.oneOf("PLACEMENT LAYER") + pp.Optional(layerName))
+bkgType = pp.Group(DASH + pp.oneOf("PLACEMENT LAYER") + pp.Optional(layerName) +
+                    pp.Optional(routeBkgAttr + pp.Optional(hierName)) +
+                    pp.OneOrMore(pp.oneOf("RECT POLYGON") + polygon) +
+                    SEMICOLON
+                   )
 
 cellBkg = pp.Group(DASH + pp.oneOf("PLACEMENT LAYER") + pp.Optional(layerName) + PLUS +
                    pp.Optional(bkgAttr+ pp.Optional(hierName)) +

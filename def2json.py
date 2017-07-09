@@ -83,11 +83,16 @@ def  comp2dict(comp,compHash):
 
 def bkg2dict(bkg,bkgHash,type):
     bkgList = bkg.split("+")
-    result = pattern_match(icVar.bkgType,bkgList[0])
-    bkgName = "bkg_" + str(len(bkgHash[type]))
-    bkgHash[type][bkgName] = {}
-    bkgHash[type][bkgName]["SHAPE"] = bkgList[1]
-    print  bkgHash
+    if type is "PLACEMENT":
+        bkgName = "bkg_" + str(len(bkgHash[type]))
+        bkgHash[type][bkgName] = {}
+        bkgHash[type][bkgName]["SHAPE"] = bkgList[1]
+    else:
+        bkgName = "rg_" + str(len(bkgHash[type]))
+        bkgHash[type][bkgName] = {}
+        print bkgList
+        bkgHash[type][bkgName]["SHAPE"] = bkgList[2]
+    #print  bkgList
     # restructure the bgk
 
 
@@ -130,9 +135,9 @@ if __name__=='__main__':
                     allItem = []
                     singleItem = []
                         #p.apply_async(comp2dict, args=(comp, compHash))
-                    with open('comp.json','w') as fp:
-                        json.dump(compHash,fp,indent=1)
-                    fp.close()
+                    #with open('comp.json','w') as fp:
+                    #   json.dump(compHash,fp,indent=1)
+                    #fp.close()
                     print "Finished Parsing COMP"
                     break
                 else:
@@ -151,16 +156,20 @@ if __name__=='__main__':
                     bkgHash["ROUTE"] = {}
                     bkgHash["PLACEMENT"] = {}
                     for bkg in allItem:
-                        if re.match("LAYER", bkg) > 0:
-                            bkg2dict(bkg,bkgHash,"ROUTE")
-                        else:
+                        #print bkg
+                        #print
+                        match_type = re.search("LAYER", bkg)
+                        print type(match_type), bkg
+                        if re.search("PLACEMENT", bkg):
                             bkg2dict(bkg,bkgHash,"PLACEMENT")
+                        else:
+                            bkg2dict(bkg,bkgHash,"ROUTE")
                     allItem = []
                     singleItem = []
                     print bkgHash
-                    with open('bkg.json','w') as fp:
-                        json.dump(bkgHash,fp,indect=1)
-                    fp.close()
+                    #with open('bkg.json','w') as fp:
+                    #    json.dump(bkgHash,fp,indect=1)
+                    #fp.close()
                     print "Finished parsing Blockage"
                     break
                 else:
