@@ -120,14 +120,13 @@ compMaskShift = pp.Group("COMPONENTMASKSHIFT " + pp.OneOrMore(layerName))
 maskShift = pp.Group("MASKSHIFT" + intNum)
 
 # Blockages
-#layerBkg = pp.Group(DASH + "LAYER" + layerName +
-#                    pp.Optional(routeBkgAttr + pp.Optional(hierName)) +
-#                    pp.OneOrMore(pp.oneOf("RECT POLYGON") + polygon) +
-#                    SEMICOLON
-#                    )
-bkgType = pp.Group(DASH + pp.oneOf("PLACEMENT LAYER") + pp.Optional(layerName) +
-                    pp.Optional(routeBkgAttr + pp.Optional(hierName)) +
-                    pp.OneOrMore(pp.oneOf("RECT POLYGON") + polygon) +
+layerBkg = pp.Group(DASH + "LAYER" + layerName + PLUS +
+                    pp.Optional(routeBkgAttr + pp.Optional(hierName) + PLUS )  +
+                    pp.oneOf("RECT POLYGON") + polygon +
+                    SEMICOLON
+                    )
+bkgType = pp.Group(DASH + pp.oneOf("PLACEMENT LAYER") + PLUS +
+                    pp.oneOf("RECT POLYGON") + polygon +
                     SEMICOLON
                    )
 

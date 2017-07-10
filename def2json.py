@@ -81,23 +81,36 @@ def  comp2dict(comp,compHash):
             value = result[0][0][i+1]
             compHash[instName][key] = value
 
-def bkg2dict(bkg,bkgHash,type):
+def bkg2dict(bkg,bkgHash):
     bkgList = bkg.split("+")
-    if type is "PLACEMENT":
-        bkgName = "bkg_" + str(len(bkgHash[type]))
-        bkgHash[type][bkgName] = {}
-        bkgHash[type][bkgName]["SHAPE"] = bkgList[1]
+    if re.search("PLACEMENT", bkg):
+        bkgName = "bkg_" + str(len(bkgHash["PLACEMENT"]))
+        bkgHash["PLACEMENT"][bkgName] = {}
+        result = pattern_match(icVar.bkgType,bkg)
+        bkgHash["PLACEMENT"][bkgName]["SHAPE"] = result[0][0][2]
     else:
-        bkgName = "rg_" + str(len(bkgHash[type]))
-        bkgHash[type][bkgName] = {}
-        print bkgList
-        bkgHash[type][bkgName]["SHAPE"] = bkgList[2]
-    #print  bkgList
+        bkgName = "rg_" + str(len(bkgHash["ROUTE"]))
+        bkgHash["ROUTE"][bkgName] = {}
+        result = pattern_match(icVar.layerBkg, bkg)
+        for i in range(0,len(result[0][0]),2):
+            #print i, result[0][0][i]
+            if result[0][0][i] is "LAYER":
+                bkgHash["ROUTE"][bkgName]["LAYER"] = result[0][0][i+1]
+            elif re.search("SPACING",result[0][0][i]):
+                bkgHash["ROUTE"][bkgName]["SPACING"] = result[0][0][i+1]
+            elif re.search("POLYGON",result[0][0][i]):
+                bkgHash["ROUTE"][bkgName]["SHAPE"] = result[0][0][i+1]
+        #bkgHash["ROUTE"][bkgName]["LAYER"] = result[0][0][1]
+        #bkgHash["ROUTE"][bkgName]["SPACING"] = result[0][0][3]
+        #bkgHash["ROUTE"][bkgName]["SHAPE"] = result[0][0][5]
+        #print bkgHash
+
+    #print  bkgHash
     # restructure the bgk
 
 
 if __name__=='__main__':
-    defFile = 'C:/parser_case/Place.tiny.def'
+    defFile = 'C:/parser_case/Place.def'
     defFile = fi.FileInput(defFile, openhook=fi.hook_compressed)
     p = Pool(4)
     allItem = []
@@ -120,7 +133,9 @@ if __name__=='__main__':
                 else:
                     if line1.find(';') > -1:
                         singleItem.append(line1.strip())
+                        print singleItem
                         singlePinString = ''.join(singleItem)
+
                         allItem.append(singlePinString)
                         singlePin = []
                     else:
@@ -135,9 +150,9 @@ if __name__=='__main__':
                     allItem = []
                     singleItem = []
                         #p.apply_async(comp2dict, args=(comp, compHash))
-                    #with open('comp.json','w') as fp:
-                    #   json.dump(compHash,fp,indent=1)
-                    #fp.close()
+                    with open('comp.json','w') as fp:
+                       json.dump(compHash,fp,indent=1)
+                    fp.close()
                     print "Finished Parsing COMP"
                     break
                 else:
@@ -156,20 +171,13 @@ if __name__=='__main__':
                     bkgHash["ROUTE"] = {}
                     bkgHash["PLACEMENT"] = {}
                     for bkg in allItem:
-                        #print bkg
-                        #print
-                        match_type = re.search("LAYER", bkg)
-                        print type(match_type), bkg
-                        if re.search("PLACEMENT", bkg):
-                            bkg2dict(bkg,bkgHash,"PLACEMENT")
-                        else:
-                            bkg2dict(bkg,bkgHash,"ROUTE")
+                        bkg2dict(bkg,bkgHash)
                     allItem = []
                     singleItem = []
-                    print bkgHash
-                    #with open('bkg.json','w') as fp:
-                    #    json.dump(bkgHash,fp,indect=1)
-                    #fp.close()
+                    #print bkgHash
+                    with open('bkg.json','w') as fp:
+                        json.dump(bkgHash,fp,indent=1)
+                    fp.close()
                     print "Finished parsing Blockage"
                     break
                 else:
