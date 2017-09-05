@@ -2,9 +2,10 @@
 
 Json hash define.
 
-ROW => {$rowName}
-        => {rowSite}
-        =>
+ROW => {$rowType} =>
+                    {$rowName}
+
+
 
 TRACK => [TRACK Y ]
          [TRACY X ]
@@ -32,13 +33,19 @@ pinHash => {$pinName} =>
 				{LOCATION}=
 				{ORITATION} = 			
 
-bkgHash => {ROUTE} => {$rgName} =>
+bkgHash => {ROUTE} => {$rgName}
                              => {SHAPE}
                              => {LAYER}
+                                    [point point point]   # 2 points are rectangle, >2 points are pologon
                              => {ATTR}
            {PLACEMENT} => {$pkgName} =>
                             => {SHAPE}
 
+viaHash => {$viaName}
+                  => {RECT}
+                        [i] = >
+                            {LAYER} = "layer name"
+                            {SHAPE} = [point point]
 ##Net Section is hard to support
 NET => {$netName} =>
 SPECIALNET

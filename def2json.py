@@ -61,7 +61,7 @@ def pin2dict(pin,pinHash):
         #else:
             # "no matched", pinList[i]
 
-def  comp2dict(comp,compHash):
+def comp2dict(comp,compHash):
     result = pattern_match(icVar.compDefine,comp)
     #print "result", result
     instName = result[0][0][0]
@@ -93,20 +93,34 @@ def bkg2dict(bkg,bkgHash):
         bkgHash["ROUTE"][bkgName] = {}
         result = pattern_match(icVar.layerBkg, bkg)
         for i in range(0,len(result[0][0]),2):
-            #print i, result[0][0][i]
             if result[0][0][i] is "LAYER":
                 bkgHash["ROUTE"][bkgName]["LAYER"] = result[0][0][i+1]
             elif re.search("SPACING",result[0][0][i]):
                 bkgHash["ROUTE"][bkgName]["SPACING"] = result[0][0][i+1]
             elif re.search("POLYGON",result[0][0][i]):
                 bkgHash["ROUTE"][bkgName]["SHAPE"] = result[0][0][i+1]
-        #bkgHash["ROUTE"][bkgName]["LAYER"] = result[0][0][1]
-        #bkgHash["ROUTE"][bkgName]["SPACING"] = result[0][0][3]
-        #bkgHash["ROUTE"][bkgName]["SHAPE"] = result[0][0][5]
-        #print bkgHash
 
-    #print  bkgHash
-    # restructure the bgk
+
+def via2dict(via,viaHash):
+    print "paring via:", via
+    result = pattern_match(icVar.viaDefine, via)
+    print "paring result", result
+    viaName = result[0][0][0]
+    for i in range(1,len( result[0][0])):
+        layer = result[0][0][i][1]
+        polygon = result[0][0][i][2]
+        print viaName , i
+        viaHash[viaName] = {}
+        viaHash[viaName]["RECT"] = []
+        viaHash[viaName]["RECT"][i-1] = {}
+        viaHash[viaName]["RECT"][i-1]["LAYER"] = layer
+        viaHash[viaName]["RECT"][i-1]["SHAPE"] = polygon
+
+
+
+
+
+
 
 
 if __name__=='__main__':
@@ -115,45 +129,47 @@ if __name__=='__main__':
     p = Pool(4)
     allItem = []
     singleItem = []
+    skip_comp = 1
+    skip_pin = 1
+
     for line0 in defFile:
-        if line0.find('PINS') == 0:
+        if line0.find('PINS') == 0 and skip_pin == 0 :
             for line1 in defFile:
                 if line1.find('END PINS') == 0:
-                    print "start to match pins", len(allItem)
+                    print "Start To Parsing PINS"
                     pinHash = {}
                     for pin in allItem:
                         pin2dict(pin,pinHash)
+                        print "\tparsing pin", pin
                     allItem = []
                     singleItem = []
                     with open('pin.json', 'w') as fp:
                        json.dump(pinHash,fp,indent=1)
                     fp.close()
-                    print "Finished Parsing PINS"
+                    print "Finished Parsing PINS", len(allItem)
                     break
                 else:
                     if line1.find(';') > -1:
                         singleItem.append(line1.strip())
-                        print singleItem
                         singlePinString = ''.join(singleItem)
-
                         allItem.append(singlePinString)
-                        singlePin = []
+                        singleItem = []
                     else:
                         singleItem.append(line1.strip())
-        elif line0.find("COMPONENTS") == 0:
+        elif line0.find("COMPONENTS") == 0 and skip_comp == 0 :
             for line1 in defFile:
                 if line1.find('END COMPONENTS') == 0:
-                    print "start to match COMPONENT"
+                    print "Start To Match COMPONENT"
                     compHash = {}
                     for comp in allItem:
                         comp2dict(comp,compHash)
                     allItem = []
                     singleItem = []
-                        #p.apply_async(comp2dict, args=(comp, compHash))
+                    #p.apply_async(comp2dict, args=(comp, compHash))
                     with open('comp.json','w') as fp:
                        json.dump(compHash,fp,indent=1)
                     fp.close()
-                    print "Finished Parsing COMP"
+                    print "Finished Parsing COMPONMENT"
                     break
                 else:
                     if line1.find(';') > -1:
@@ -166,7 +182,7 @@ if __name__=='__main__':
         elif  line0.find("BLOCKAGES") == 0:
             for line1 in defFile:
                 if line1.find('END BLOCKAGES') == 0:
-                    print "start to match Blockage"
+                    print "Start To Match Blockage"
                     bkgHash = {}
                     bkgHash["ROUTE"] = {}
                     bkgHash["PLACEMENT"] = {}
@@ -178,7 +194,7 @@ if __name__=='__main__':
                     with open('bkg.json','w') as fp:
                         json.dump(bkgHash,fp,indent=1)
                     fp.close()
-                    print "Finished parsing Blockage"
+                    print "Finished Parsing Blockage"
                     break
                 else:
                     if line1.find(";") > -1:
@@ -188,6 +204,29 @@ if __name__=='__main__':
                         singleItem = []
                     else:
                         singleItem.append(line1.strip()+" + ")
+        elif line0.find("VIAS") == 0:
+            for line1 in defFile:
+                if line1.find("END VIAS") == 0:
+                    print "Start To Match VIAS"
+                    viaHash = {}
+                    for via in allItem:
+                        via2dict(via,viaHash)
+                    allItem = []
+                    singleItem = []
+                    with open('via.json','w') as fp:
+                        json.dump(viaHash,fp,indent=1)
+                    fp.close()
+                    print "Finished Parsing Blockage"
+                    break
+                else:
+                    if line1.find(";") > -1:
+                        singleItem.append(line1.strip())
+                        singleCompString = ''.join(singleItem)
+                        allItem.append(singleCompString)
+                        singleItem = []
+                    else:
+                        singleItem.append(line1.strip()+" ")
+
     #with open('pin.json', 'r') as fp:
     #   output = json.load(fp)
 
