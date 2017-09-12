@@ -102,25 +102,18 @@ def bkg2dict(bkg,bkgHash):
 
 
 def via2dict(via,viaHash):
-    print "paring via:", via
+    #print "paring via:", via
     result = pattern_match(icVar.viaDefine, via)
-    print "paring result", result
+    #print "paring result", result
     viaName = result[0][0][0]
     for i in range(1,len( result[0][0])):
         layer = result[0][0][i][1]
         polygon = result[0][0][i][2]
-        print viaName , i
         viaHash[viaName] = {}
-        viaHash[viaName]["RECT"] = []
-        viaHash[viaName]["RECT"][i-1] = {}
-        viaHash[viaName]["RECT"][i-1]["LAYER"] = layer
-        viaHash[viaName]["RECT"][i-1]["SHAPE"] = polygon
-
-
-
-
-
-
+        viaHash[viaName]["RECT"] = {}
+        viaHash[viaName]["RECT"][i]= {}
+        viaHash[viaName]["RECT"][i]["LAYER"] = layer
+        viaHash[viaName]["RECT"][i]["SHAPE"] = polygon
 
 
 if __name__=='__main__':
