@@ -1,7 +1,5 @@
 # def2json
 
-Json hash define.
-
 ROW => {$rowType} =>
                     {$rowName}
 
@@ -50,4 +48,4 @@ viaHash => {$viaName}
 NET => {$netName} =>
 SPECIALNET
 
-
+#lef2json
