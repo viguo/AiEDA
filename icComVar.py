@@ -355,3 +355,5 @@ viaSect = pp.Group("VIAS" + intNum + SEMICOLON + pp.OneOrMore(viaDefine) + "END 
 
 # Property Define
 
+# lef pattern match define
+

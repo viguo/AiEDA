@@ -1,25 +1,17 @@
 # def2json
-
 ROW => {$rowType} =>
                     {$rowName}
-
-
-
 TRACK => [TRACK Y ]
          [TRACY X ]
-
 VIAS => {$viaName} =>
         => {RECT} => [ $shape1 $shape2 ]
-
 NDR => {$ruleName}  = [$ndr ]
-
 compHash => {$instName} =>
                 => {STATUS} = ""
                 => {REFNAME} = ""
                 => {LOCATION} = ""
                 => {ORITATION} = ""
                 => {HALO} = rectangle
-
 pinHash => {$pinName} =>
 			=> {NET}
 			=> {DIRECTION}
@@ -29,8 +21,7 @@ pinHash => {$pinName} =>
 				{SHAPE} =
 				{STATUS} = 
 				{LOCATION}=
-				{ORITATION} = 			
-
+				{ORITATION} =
 bkgHash => {ROUTE} => {$rgName}
                              => {SHAPE}
                              => {LAYER}
@@ -38,7 +29,6 @@ bkgHash => {ROUTE} => {$rgName}
                              => {ATTR}
            {PLACEMENT} => {$pkgName} =>
                             => {SHAPE}
-
 viaHash => {$viaName}
                   => {RECT}
                         [i] = >
@@ -49,3 +39,46 @@ NET => {$netName} =>
 SPECIALNET
 
 #lef2json
+lefHash => {VERSION} = "5.8"
+           {BUSBITCHARS} = "[]"
+           {DIVIDERCHAR} = "/"
+           { SITE }
+                => {$name}
+                     => {SYMMETRY} = "X Y"
+                     => {CLASS}    = "core"
+                     => {SIZE}
+                            =>  { width } = 0.057
+                            =>  { height} = 1.92
+           {MACRO }
+                => {$macroName}
+                    => {FIXEDMASK} = 1
+                    => {CLASS} = "CORE WELLTAP"
+                    => {FOREIGN} = "0 0"
+                    => {ORIGIN}  = "0 0"
+                    => {SIZE}
+                            => { x } = 1
+                            => { y } = 2
+                    => {SYMMETRY} = { X Y }
+                    => { SITE } = "siteName"
+                    => {PIN}
+                        => {NAME}  =  "VDD"
+                        => {DIRECTION }  =  "INPUT, OUTPUT, INOUT"
+                        => {USE} = "POWER"
+                        => {SHAPE} = "ABUTMENT"
+                        => {PORT}
+                            => [0]
+                                => {LAYER} = "M0 M1"
+                                => {RECT}  = "polygon"
+                                => {Mask} = "1"
+                            => [1]
+                                => {LAYER} = "M0 M1"
+                                => {RECT}  = "polygon"
+                                => {Mask} = "1"
+                    => {OBS}
+                        => {$layer}
+                            => [0]
+                                => {Mask} = "0 1 NUL"
+                                => {RECT} = $polygon
+                            => [1]
+                                => {Mask} = "0 1 NUL"
+                                => {RECT} = $polygon
