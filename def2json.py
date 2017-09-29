@@ -117,15 +117,16 @@ def via2dict(via,viaHash):
 
 
 if __name__=='__main__':
-    defFile = 'C:/parser_case/Place.def'
+    defFile = 'C:/parser_case/COMPS.def.gz'
     defFile = fi.FileInput(defFile, openhook=fi.hook_compressed)
     p = Pool(4)
     allItem = []
     singleItem = []
-    skip_comp = 1
+    skip_comp = 0
     skip_pin = 1
 
     for line0 in defFile:
+        if defFile.filelineno() % 100000 == 0 : print "Reading Def", defFile.filelineno()
         if line0.find('PINS') == 0 and skip_pin == 0 :
             for line1 in defFile:
                 if line1.find('END PINS') == 0:
@@ -151,10 +152,13 @@ if __name__=='__main__':
                         singleItem.append(line1.strip())
         elif line0.find("COMPONENTS") == 0 and skip_comp == 0 :
             for line1 in defFile:
+                if defFile.filelineno() % 100000 == 0: print "Reading Comp",defFile.filelineno()
                 if line1.find('END COMPONENTS') == 0:
                     print "Start To Match COMPONENT"
                     compHash = {}
-                    for comp in allItem:
+                    for i in range(len(allItem)):
+                        comp = allItem[i]
+                        if i % 1000 == 0: print "Procesing Comp", i
                         comp2dict(comp,compHash)
                     allItem = []
                     singleItem = []
