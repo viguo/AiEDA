@@ -36,6 +36,9 @@ viaHash => {$viaName}
                             {SHAPE} = [point point]
 ##Net Section is hard to support
 NET => {$netName} =>
+			=> {USE}
+			=> {PINS} = "port"
+						"instance pin"
 SPECIALNET
 
 #lef2json

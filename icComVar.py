@@ -1,5 +1,5 @@
 import pyparsing as pp
-
+import re
 #Define the special variables
 PLUS, DASH = map(pp.Suppress, "+-")
 COLON, LBRACK, RBRACK, LBRACE, RBRACE, TILDE, CARAT, COMMA = map(pp.Suppress, ":[]{}~^,")
@@ -46,6 +46,8 @@ scenarioName= pp.Word(pp.alphanums + "_" + "'")
 orient       = pp.oneOf("N E  W  S  FN  FE  FW  FS")
 routeDir     = pp.oneOf("X Y")
 placeStatus  = pp.oneOf("PLACED FIXED COVER UNPLACED")
+rePlaceStatus = re.compile('PLACED|FIXED|COVER|UNPLACED')
+
 oxide        = pp.oneOf("OXIDE1 OXIDE2 OXIDE3 OXIDE4")
 pinDir       = pp.oneOf("INPUT OUTPUT INOUT")
 pinUse       = pp.oneOf("SIGNAL POWER GROUND CLOCK TIEOFF ANALOG SCAN RESET")
@@ -77,6 +79,7 @@ polygon      = pp.Group(orig + pp.OneOrMore(orig))
 layerName    = pp.oneOf("M0 M1 M2 M3 M4 M5 M6 M7 M8 M9 M10 M11 M12 M13 AP VIA0 VIA1 VIA2 VIA3 VIA4 VIA5 VIA6 VIA7 VIA8 VIA9 VIA10 VIA11 VIA12 RV")
 metalName    = pp.oneOf("M0 M1 M2 M3 M4 M5 M6 M7 M8 M9 M10 M11 M12 M13 AP")
 cutName      = pp.oneOf("VIA0 VIA1 VIA2 VIA3 VIA4 VIA5 VIA6 VIA7 VIA8 VIA9 VIA10 VIA11 VIA12 RV")
+#######################################################################
 
 #DEF Pattern
 '''
