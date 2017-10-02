@@ -59,43 +59,22 @@ def pin2dict(pin,pinHash):
             pinHash[pinName][termName]["STATUS"] = result[0][0][0]
             pinHash[pinName][termName]["LOCATION"] = result[0][0][1]
             pinHash[pinName][termName]["ORITATION"] = result[0][0][2]
-        #else:
-            # "no matched", pinList[i]
 
-#def comp2dictRe(comp,compHash):
-#    compList = comp.split("+")
-#    print compList
-    #compHash[instName]= {}
-    #instName = compList[1].split()[1]
-    #compHash[instName]["REFNAME"] =
-    #compHash[instName]["STATUS"] = status
-    #compHash[instName]["LOCATION"] = location
-    #compHash[instName]["ORITATION"] = oritation
-    #if len(result[0][0]) > 3:
-    #    for i in range(3,len(result[0][0]),2 ):
-    #        #print "key value i ",i, result[0][0][i], result[0][0][i+1]
-    #        key = result[0][0][i]
-    #        value = result[0][0][i+1]
-    #        compHash[instName][key] = value
 def comp2dict(comp,compHash):
-    result = pattern_match(icVar.compDefine,comp)
-    #print "result", result
-    instName = result[0][0][0]
-    refName = result[0][0][1]
-    status = result[0][0][2][0]
-    location = result[0][0][2][1]
-    oritation = result[0][0][2][2]
-    compHash[instName]= {}
+    compList = comp.split("+")
+    instName,refName = compList[0].split()[1],compList[0].split()[2]
+    compHash[instName] = {}
     compHash[instName]["REFNAME"] = refName
-    compHash[instName]["STATUS"] = status
-    compHash[instName]["LOCATION"] = location
-    compHash[instName]["ORITATION"] = oritation
-    if len(result[0][0]) > 3:
-        for i in range(3,len(result[0][0]),2 ):
-            #print "key value i ",i, result[0][0][i], result[0][0][i+1]
-            key = result[0][0][i]
-            value = result[0][0][i+1]
-            compHash[instName][key] = value
+    # print icVar.placeStatus, type(icVar.placeStatus)
+    for i in range(1,len(compList)):
+        if icVar.rePlaceStatus.search(compList[i]):
+            # print icVar.rePlaceStatus.search(compItem), compItem.find("PLACED"), compItem
+            attrList = compList[i].split()
+            # print compItem
+            compHash[instName]["STATUS"] = attrList[0]
+            compHash[instName]["LOCATION"] = attrList[2:4]
+            compHash[instName]["ORITATION"] = attrList[5]
+
 def net2dict(net,netHash):
     itemList = net.split("+")
     netPin = re.split("[\)\(]",itemList[0])
@@ -120,15 +99,6 @@ def net2dict(net,netHash):
         else:
             print "New attr", itemList[i]
 
-
-
-
-
-
-
-
-
-
 def bkg2dict(bkg,bkgHash):
     bkgList = bkg.split("+")
     if re.search("PLACEMENT", bkg):
@@ -148,7 +118,6 @@ def bkg2dict(bkg,bkgHash):
             elif re.search("POLYGON",result[0][0][i]):
                 bkgHash["ROUTE"][bkgName]["SHAPE"] = result[0][0][i+1]
 
-
 def via2dict(via,viaHash):
     #print "paring via:", via
     result = pattern_match(icVar.viaDefine, via)
@@ -163,7 +132,6 @@ def via2dict(via,viaHash):
         viaHash[viaName]["RECT"][i]["LAYER"] = layer
         viaHash[viaName]["RECT"][i]["SHAPE"] = polygon
 
-
 if __name__=='__main__':
     #defFileName = 'C:/parser_case/COMPS.def.gz'
     defFileName = 'C:/parser_case/Place.def.gz'
@@ -171,13 +139,14 @@ if __name__=='__main__':
     pool = Pool(4)
     allItem = []
     singleItem = []
-    skipComp = 1
-    skipPin = 1
-    skipVia = 1
+    skipComp = 0
+    skipPin = 0
+    skipVia = 0
     skipNets = 0
-    skipBkg = 1
+    skipBkg = 0
+    dsgHash = {}
     for line0 in defFile:
-        if defFile.filelineno() % 100000 == 0 : print "Reading Def", defFile.filelineno()
+        #if defFile.filelineno() % 100000 == 0 : print "Reading Def", defFile.filelineno()
         if line0.find('PINS') == 0 and skipPin == 0 :
             for line1 in defFile:
                 if line1.find('END PINS') == 0:
@@ -185,13 +154,12 @@ if __name__=='__main__':
                     pinHash = {}
                     for pin in allItem:
                         pin2dict(pin,pinHash)
-                        print "\tparsing pin", pin
                     allItem = []
                     singleItem = []
                     with open('pin.json', 'w') as fp:
                        json.dump(pinHash,fp,indent=1)
                     fp.close()
-                    print "Finished Parsing PINS", len(allItem)
+                    dsgHash["PIN"] = pinHash
                     break
                 else:
                     if line1.find(';') > -1:
@@ -205,35 +173,17 @@ if __name__=='__main__':
             for line1 in defFile:
                 if defFile.filelineno() % 100000 == 0: print "Reading Comp",defFile.filelineno()
                 if line1.find('END COMPONENTS') == 0:
-                    print "Start To Match COMPONENT"
+                    print "Parsing COMPONENT"
                     compHash = {}
                     for i in range(len(allItem)):
-                        if i % 100000 == 0 : print "parsed ",i
-                        comp = allItem[i].split("+")
-                        for i in range(len(comp)):
-                            compItem = comp[i]
-                            if compItem.find("- ") > -1:
-                                #print type(compItem), compItem.split()
-                                compList = compItem.split()
-                                instName = compList[1]
-                                refName = compList[2]
-                                compHash[instName] = {}
-                                compHash[instName]["REFNAME"] = refName
-                                #print icVar.placeStatus, type(icVar.placeStatus)
-                            elif icVar.rePlaceStatus.search(compItem) :
-                                #print icVar.rePlaceStatus.search(compItem), compItem.find("PLACED"), compItem
-                                compList = compItem.split()
-                                #print compItem
-                                compHash[instName]["STATUS"] = compList[0]
-                                compHash[instName]["LOCATION"] = compList[2:4]
-                                compHash[instName]["ORITATION"] = compList[5]
+                            comp2dict(allItem[i],compHash)
                     allItem = []
                     singleItem = []
 
                     with open('comp.json','w') as fp:
                        json.dump(compHash,fp,indent=1)
                     fp.close()
-                    print "Finished Parsing COMPONMENT"
+                    dsgHash["INST"] = compHash
                     break
                 else:
                     if line1.find(';') > -1:
@@ -243,10 +193,10 @@ if __name__=='__main__':
                         singleItem = []
                     else:
                         singleItem.append(line1.strip())
-        elif  line0.find("BLOCKAGES") == 0 and skipBkg == 0 :
+        elif line0.find("BLOCKAGES") == 0 and skipBkg == 0 :
             for line1 in defFile:
                 if line1.find('END BLOCKAGES') == 0:
-                    print "Start To Match Blockage"
+                    print "Parsing BLOCKAGE"
                     bkgHash = {}
                     bkgHash["ROUTE"] = {}
                     bkgHash["PLACEMENT"] = {}
@@ -258,7 +208,7 @@ if __name__=='__main__':
                     with open('bkg.json','w') as fp:
                         json.dump(bkgHash,fp,indent=1)
                     fp.close()
-                    print "Finished Parsing Blockage"
+                    dsgHash["BKG"] = bkgHash
                     break
                 else:
                     if line1.find(";") > -1:
@@ -271,7 +221,7 @@ if __name__=='__main__':
         elif line0.find("VIAS") == 0  and skipVia == 0:
             for line1 in defFile:
                 if line1.find("END VIAS") == 0:
-                    print "Start To Match VIAS"
+                    print "Parsing VIAS"
                     viaHash = {}
                     for via in allItem:
                         via2dict(via,viaHash)
@@ -280,7 +230,7 @@ if __name__=='__main__':
                     with open('via.json','w') as fp:
                         json.dump(viaHash,fp,indent=1)
                     fp.close()
-                    print "Finished Parsing Blockage"
+                    dsgHash["VIA"] = viaHash
                     break
                 else:
                     if line1.find(";") > -1:
@@ -296,7 +246,7 @@ if __name__=='__main__':
         elif line0.find("NETS ") == 0 and skipNets == 0:
             for line1 in defFile:
                 if line1.find('END NETS') == 0:
-                    print "Parsing Nets"
+                    print "Parsing NETS"
                     netHash = {}
                     for i  in range(len(allItem)):
                         net2dict(allItem[i],netHash)
@@ -305,6 +255,7 @@ if __name__=='__main__':
                     with open('net.json', 'w') as fp:
                         json.dump(netHash, fp, indent=1)
                     fp.close()
+                    dsgHash["NET"] = netHash
                     break
                 else:
                     if line1.find(";") > -1:
@@ -315,7 +266,9 @@ if __name__=='__main__':
                     else:
                         singleItem.append(line1.strip())
 
-
+    with open('design.json', 'w') as fp:
+        json.dump(dsgHash, fp, indent=1)
+    fp.close()
 
 
 

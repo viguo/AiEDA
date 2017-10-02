@@ -1,87 +1,95 @@
 # def2json
-ROW => {$rowType} =>
-                    {$rowName}
-TRACK => [TRACK Y ]
-         [TRACY X ]
-VIAS => {$viaName} =>
-        => {RECT} => [ $shape1 $shape2 ]
-NDR => {$ruleName}  = [$ndr ]
-compHash => {$instName} =>
+dsgHash  => {DIEAREA} = polygon
+            {ROW} => {$rowType} =>
+                            {$rowName}
+            {TRACK} => [TRACK Y ]
+                      [TRACY X ]
+            {VIAS} => {$viaName} =>
+                            => {RECT}
+                                [i] = >
+                                    {LAYER} = "layer name"
+                                    {SHAPE} = [point point]
+            {NDR} => {$ruleName} = [$ndr ]
+            {ROUTEBKG} => {$rgName}
+                             => {SHAPE}
+                             => {LAYER}
+                                    [point point point]   # 2 points are rectangle, >2 points are pologon
+                             => {ATTR}
+            {PLACBKG} => {$pkgName} =>
+                                 => {SHAPE}
+            {$instName} =>
                 => {STATUS} = ""
                 => {REFNAME} = ""
                 => {LOCATION} = ""
                 => {ORITATION} = ""
                 => {HALO} = rectangle
-pinHash => {$pinName} =>
-			=> {NET}
-			=> {DIRECTION}
-			=> {USE}
-			=> {$termName}
-				{LAYER}  =  
-				{SHAPE} =
-				{STATUS} = 
-				{LOCATION}=
-				{ORITATION} =
-bkgHash => {ROUTE} => {$rgName}
-                             => {SHAPE}
-                             => {LAYER}
-                                    [point point point]   # 2 points are rectangle, >2 points are pologon
-                             => {ATTR}
-           {PLACEMENT} => {$pkgName} =>
-                            => {SHAPE}
-viaHash => {$viaName}
-                  => {RECT}
-                        [i] = >
-                            {LAYER} = "layer name"
-                            {SHAPE} = [point point]
-##Net Section is hard to support
-NET => {$netName} =>
-			=> {USE}
-			=> {PINS} = "port"
+            {$portName} =>
+			    => {NET}
+			    => {DIRECTION}
+			    => {USE}
+			    => {$termName}
+				    {LAYER}  =
+				    {SHAPE} =
+				    {STATUS} =
+				    {LOCATION}=
+				    {ORITATION} =
+            {$netName} =>
+			    => {USE}
+			    => {PINS} = "port"
 						"instance pin"
-SPECIALNET
-
-#lef2json
-lefHash => {VERSION} = "5.8"
-           {BUSBITCHARS} = "[]"
-           {DIVIDERCHAR} = "/"
-           { SITE }
-                => {$name}
-                     => {SYMMETRY} = "X Y"
-                     => {CLASS}    = "core"
-                     => {SIZE}
+			    => {FLATNET} = ""
+			    => {FANIN} = ""
+			    => {FANOUT} = ""
+			    => {WIRES}  = "layer width x1 y1 x2 y2"
+			    => {VIAS}   = "layer x y"
+			    => {NDR}    = "ruleName"
+			    => {LENGTH} = "layer length"
+			    => {TIEH}   = "false true"
+			    => {TIEL}   = "false true"
+			    => {ESTLENGTH} = ""
+libHash => {TECHLEF} =>
+                    {VERSION} = "5.8"
+                    {BUSBITCHARS} = "[]"
+                    {DIVIDERCHAR} = "/"
+                    { SITE }
+                        => {$name}
+                            => {SYMMETRY} = "X Y"
+                            => {CLASS}    = "core"
+                    => {SIZE}
                             =>  { width } = 0.057
                             =>  { height} = 1.92
-           {MACRO }
-                => {$macroName}
-                    => {FIXEDMASK} = 1
-                    => {CLASS} = "CORE WELLTAP"
-                    => {FOREIGN} = "0 0"
-                    => {ORIGIN}  = "0 0"
-                    => {SIZE}
-                            => { x } = 1
-                            => { y } = 2
-                    => {SYMMETRY} = { X Y }
-                    => { SITE } = "siteName"
-                    => {PIN}
-                        => {NAME}  =  "VDD"
-                        => {DIRECTION }  =  "INPUT, OUTPUT, INOUT"
-                        => {USE} = "POWER"
-                        => {SHAPE} = "ABUTMENT"
-                        => {PORT}
-                            => [0]
-                                => {LAYER} = "M0 M1"
-                                => {RECT}  = "polygon"
-                                => {Mask} = "1"
-                            => [1]
-                                => {LAYER} = "M0 M1"
-                                => {RECT}  = "polygon"
-                                => {Mask} = "1"
-                    => {OBS}
-                        => {$layer}
-                            => [0]
-                                => {Mask} = "0 1 NUL"
-                                => {RECT} = $polygon
-                            => [1]
-                                => {Mask} = "0 1 NUL"
-                                => {RECT} = $polygon
+          {TECHTIM} =>
+
+       => {MACRO} =>
+            {$macroName}
+                => {FIXEDMASK} = 1
+                => {CLASS} = "CORE WELLTAP"
+                => {FOREIGN} = "0 0"
+                => {ORIGIN}  = "0 0"
+                => {SIZE}
+                    => { x } = 1
+                    => { y } = 2
+                => {SYMMETRY} = { X Y }
+                => { SITE } = "siteName"
+                => {PIN}
+                    => {NAME}  =  "VDD"
+                    => {DIRECTION }  =  "INPUT, OUTPUT, INOUT"
+                    => {USE} = "POWER"
+                    => {MISC} = "ABUTMENT"
+                    => {SHAPE}
+                        => [0]
+                            => {LAYER} = "M0 M1"
+                            => {RECT}  = "polygon"
+                            => {Mask} = "1"
+                    => [1]
+                            => {LAYER} = "M0 M1"
+                            => {RECT}  = "polygon"
+                            => {Mask} = "1"
+                => {OBS}
+                    => {$layer}
+                    => [0]
+                        => {Mask} = "0 1 NUL"
+                        => {RECT} = $polygon
+                    => [1]
+                        => {Mask} = "0 1 NUL"
+                        => {RECT} = $polygon
