@@ -9,7 +9,7 @@ import re
 import fileinput as fi
 import matplotlib.pyplot as plt
 import numpy as np
-import json
+import json,gzip
 import multiprocessing as mp
 import glob
 from Bom import Bom
@@ -33,20 +33,20 @@ def getValues(lVals):
         else:
             return val
 def loadJson(filePath):
-    # open JSON file and parse contents
     print "Lading json",filePath
     start_time = time.time()
-    fh = open(filePath,'r')
-    data = json.load(fh)
-    fh.close()
-
-    print "\t Loading time :", int(time.time() - start_time), "S"
-
-    return data
+    with gzip.GzipFile(filePath, 'r') as fin:  # 4. gzip
+        json_bytes = fin.read()  # 3. bytes (i.e. UTF-8)
+        json_str = json_bytes.decode('utf-8')  # 2. string
+        data = json.loads(json_str)  # 1. data
+        print "\t Loading time :", int(time.time() - start_time), "S"
+        return data
 
 def saveJson(Json,fileName):
-    with open(fileName, 'w') as fp:
-       json.dump(Json, fp, indent=1)
+    with gzip.GzipFile(fileName, 'w') as fout:
+        json_str = json.dumps(Json,indent=1) + "\n"
+        json_bytes = json_str.encode('utf-8')
+        fout.write(json_bytes)
 
 def patternMatch(pattern,target_string):
     #print target_string,pattern
