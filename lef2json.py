@@ -9,7 +9,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import json
 import glob
-import aiEDA as eda
 
 def list_flatten(l, a=None):
     #check a
@@ -34,8 +33,7 @@ def pattern_match(pattern,target_string):
     result = pattern.searchString(target_string).asList()
     return result
 
-ainst = eda.inst(inist)
-ainst.move(x,y)
+
 
 if __name__=='__main__':
     #lefFileName = 'C:/parser_case/ts07nxpvlogl11hdf057f.lef'

@@ -46,7 +46,7 @@ scenarioName= pp.Word(pp.alphanums + "_" + "'")
 orient       = pp.oneOf("N E  W  S  FN  FE  FW  FS")
 routeDir     = pp.oneOf("X Y")
 placeStatus  = pp.oneOf("PLACED FIXED COVER UNPLACED")
-rePlaceStatus = re.compile('PLACED|FIXED|COVER|UNPLACED')
+rePlaceStatus = re.compile('PLACED|FIXED|COVER')
 
 oxide        = pp.oneOf("OXIDE1 OXIDE2 OXIDE3 OXIDE4")
 pinDir       = pp.oneOf("INPUT OUTPUT INOUT")

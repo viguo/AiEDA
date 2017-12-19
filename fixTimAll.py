@@ -10,17 +10,23 @@ import numpy as np
 import json
 import multiprocessing as mp
 import glob
+import eda2json
 
+eda2json.def2hash()
 
-def load_json(fh):
+def loadJson(filePath):
+    # open JSON file and parse contents
+    print "Lading json",filePath
     start_time = time.time()
-    fp =  open(fh, 'r')
-    data = json.load(fp)
-    fp.close()
-    print "Loaded ", fh, "within", time.time() - start_time, "Second"
+    fh = open(filePath,'r')
+    data = json.load(fh)
+    fh.close()
+    print "\t Loading Time :", time.time() - start_time, "S"
     return data
 
-
+def saveJson(Json,fileName):
+    with open(fileName, 'w') as fp:
+       json.dump(Json, fp, indent=1)
 
 
 def clkTranRpt2json ():
@@ -175,8 +181,6 @@ def json2eco(jsonFile, ecoFile):
                     #fp.write(setRef)
                     fp.write(setLocation + "\n")
 
-
-
 def compareJson(data_a,data_b):
     # type: list
 	if (type(data_a) is list):
@@ -220,9 +224,11 @@ def compareJson(data_a,data_b):
 		(type(data_a) is type(data_b))
 	)
 
-def fixSiHold():
+
+def fixDeltaTrans(rundir):
     netList = []
-    rpt = "/proj/ariel_pd_vol88/yaguo/NLD/1016_eco/main/pd/tiles/ECO_1019_run1/rpts/SortHldEcoRouteFuncFFG1p05vffg1p05v0cEcoRouteSxGrp/H.INTERNAL.sorted.gz"
+    rpt = rundir + "rpts/SortHldEcoRouteFuncFFG1p05vffg1p05v0cEcoRouteSxGrp/H.INTERNAL.sorted.gz"
+    ecoFile = rundir + "data/deltaTrans.eco"
     fp = fi.FileInput(rpt, openhook=fi.hook_compressed)
     for line1 in fp:
         if line1.find("(net)") > 0:
@@ -231,14 +237,47 @@ def fixSiHold():
                 netName = netAttr[0]
                 netFanout = netAttr[2]
                 netCap = float(netAttr[3])
-                if netCap > 5:
-                    netList.append(netName)
+                if netCap > 8:
+                    for line2 in fp:
+                        flatPinList = line2.split()
+                        if len(flatPinList) == 9:
+                            deltaTrans = float(flatPinList[2])
+                            if deltaTrans < -10 :
+                                #print "debug", netName,deltaTrans,flatPinList[1]
+                                #print line2
+                                netList.append(netName)
+                            break
+
     #                print line1
+    bufCell = "HDBLVT08_BUF_4"
+    preFix = "yaguo_1029_deltaTrans"
+    netList =list(set(netList))
+    #with open(ecoFile,"w") as fpw:
+    #    for net in netList:
+    #            fpw.write("catch { add_buffer_on_route "+ net + " -lib_cell " + bufCell +  " -net_prefix " + preFix + " -cell_prefix " + preFix + " -repeater_distance 40 -no_legalize -punch_port -verbose}\n")
+    return netList
+def fixSiHold():
+    pinList = []
+    rpt = rundir + "rpts/SortHldEcoRouteFuncFFG1p05vffg1p05v0cEcoRouteSxGrp/H.INTERNAL.sorted.gz"
+    fp = fi.FileInput(rpt, openhook=fi.hook_compressed)
+    for line1 in fp:
+        flatPinLine = line1.split()
+        if len(flatPinLine) == 9 :
+            endPoint =  flatPinLine[0]
+            line2 = fp.readline()
+            if line2.find("data arrival time") > -1:
+                #print "endpoint:", endPoint
+                pinList.append(endPoint)
+
     bufCell = "HDBLVT08_BUF_1"
-    preFix = "yaguo_1020_holdFix"
-    with open("/proj/ariel_pd_vol88/yaguo/NLD/1016_eco/main/pd/tiles/ECO_1019_run1/data/holdfix.eco","w") as fpw:
-        for net in netList:
-            fpw.write("catch { add_buffer_on_route "+ net + " -lib_cell " + bufCell +  " -net_prefix " + preFix + " -cell_prefix " + preFix + " -repeater_distance 20 -no_legalize -punch_port -verbose}\n")
+    preFix = "yaguo_1030_holdFix"
+    i2Eco = open(rundir + "/data/holdfix.i2.eco","w")
+    ptEco = open(rundir + "/data/holdfix.pt.eco", "w")
+    for pin in pinList:
+        i2Eco.write("catch { buffer_pin "+ pin + " " + bufCell + " " + preFix + " }\n")
+        ptEco.write("catch { insert_buffer " + pin + " " + bufCell + " }\n")
+
+
 
 def fixDrv(rundir):
     dwRpt = rundir + "mis_checks/double_switch.txt"
@@ -246,26 +285,49 @@ def fixDrv(rundir):
     sibRpt = rundir  + "mis_checks/si_bottleneck.txt"
     glhRpt = rundir + "mis_checks/glitch.txt"
     allRpt = glob.glob(rundir+"mis_checks/"+"*")
-    fpw = open(rundir + "data/drvFix.eco", "w")
+    #fpw = open(rundir + "data/drvFix.eco", "w")
     drvNetList = []
     for rpt in allRpt:
-        if re.search(r"[double_switch|data_trans]",rpt):
+        if re.search(r"double_switch",rpt):
+            print "open ", rpt
             with open(rpt,"r") as fp :
                 for line1 in fp:
                     net = line1.split()[0]
                     drvNetList.append(net)
-        elif re.search(r'[si_bottleneck|glitch]',rpt):
+            print "drvnet1 count", len(drvNetList)
+        elif re.search(r"data_trans",rpt):
+            print "open ", rpt
+            i2Eco = open(rundir + "/data/dtran.i2.eco", "w")
             with open(rpt, "r") as fp:
                 for line1 in fp:
-                    net  = line1.chmop()
+                    #print line1.split()
+                    net,driver,refName = line1.split()[0:3]
                     drvNetList.append(net)
+                    bufCell = "HDBLVT08_BUF_8"
+                    preFix = "yaguo_1101_dtranFix"
+                    #i2Eco.write(" buffer_pin " + driver + " " + bufCell + " " + preFix + " \n")
+            print "drvnet1 count", len(drvNetList)
 
-    bufCell = "HDBLVT08_BUF_8"
-    preFix = "yaguo_1023_drvFix"
+        elif re.search(r'si_bottleneck|glitch',rpt):
+            print "open ", rpt
+            with open(rpt, "r") as fp:
+                for line1 in fp:
+                    net  = line1.rstrip()
+                    drvNetList.append(net)
+            print "drvnet2 count", len(drvNetList)
+    bufCell = "HDBLVT08_BUF_4"
+    preFix = "yaguo_1027_drvFix"
     drvNetList = list(set(drvNetList))
-    for net in drvNetList:
-        fpw.write("catch { add_buffer_on_route "+ net + " -lib_cell " + bufCell +  " -net_prefix " + preFix + " -cell_prefix " + preFix + " -first_distance 10 " + " -repeater_distance 80 -no_legalize -punch_port -verbose}\n")
-    fpw.close()
+    #netJsonFile = "./json/smu_zcn1_tu.net.json"
+    #netHash =
+    #for net in drvNetList:
+    #   #fpw.write("catch { add_buffer_on_route "+ net + " -lib_cell " + bufCell +  " -net_prefix " + preFix + " -cell_prefix " + preFix + " -first_distance 10 " + " -repeater_distance 40 -no_legalize -punch_port -verbose}\n")
+    #   fpw.write(
+    #            "catch { add_buffer_on_route " + net + " -lib_cell " + bufCell + " -net_prefix " + preFix + " -cell_prefix " + preFix + " -repeater_distance 40 -no_legalize -punch_port -verbose}\n")
+    #fpw.close()
+    print "drvnet count", len(drvNetList)
+    return drvNetList
+
 
 def fixStpByRmBuf(rundir):
     #rpt = rundir + "rpts/SortStpEcoRouteFuncTT0p65vtt0p65v0cEcoRouteGrp/S.INTERNAL.sorted.gz"
@@ -288,10 +350,23 @@ def fixStpByRmBuf(rundir):
 if __name__=='__main__':
     #defFileName = 'C:/parser_case/COMPS.def.gz'
     #defFileName = 'C:/parser_case/Place.def.gz'
-    rundir = "/proj/ariel_pd_vol88/yaguo/NLD/1016_eco/main/pd/tiles/ECO_1020_run1/"
-    fixDrv(rundir)
+    rundir = "/proj/ariel_pd_vol88/yaguo/NLD/1030_eco/main/pd/tiles/ECO_1030_run4/"
+    #drvNets = fixDrv(rundir)
+    drvNets  = []
+    dtNets = fixDeltaTrans(rundir)
+
+    drvNets.extend(dtNets)
+    drvNetList = list(set(drvNets))
+
+    bufCell = "HDBLVT08_BUF_8"
+    preFix = "yaguo_1101_siDelay"
+    fpw = open(rundir + "data/drvFix.eco", "w")
+    for net in drvNetList:
+       fpw.write(
+                " add_buffer_on_route " + net + " -lib_cell " + bufCell + " -net_prefix " + preFix + " -cell_prefix " + preFix + " -first_distance 5" + " -repeater_distance_length_ratio 0.5 -no_legalize -punch_port -verbose \n")
+    fpw.close()
     #fixStpByRmBuf(rundir)
-    #fixSiHold()
+    fixSiHold()
 
     #refJsonFile = "json/a.json"
     #tarJsonFile = "json/b.json"
