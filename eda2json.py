@@ -15,7 +15,21 @@ import multiprocessing as mp
 import glob
 from Bom  import Bom, IP
 import socket
-
+def params2Json(tileParams):
+    paramHash = {}
+    with open(tileParams,"rt") as fin:
+        for line in fin:
+            if line.find("#") < 0 and line.find("=") > -1 :
+                if len(line) > 1 :
+                        paramsList = line.rstrip().split("= ")
+                        key = paramsList[0].replace("\t","")
+                        #print(len(paramsList), paramsList)
+                        if len(paramsList) > 1  :
+                            paramHash[key] = paramsList[1]
+                        else:
+                            paramHash[key] = ""
+    #saveJson(paramHash,"./tilesParams.json")
+    return paramHash
 def listFlatten(l, a=None):
     #check a
     if a is None:
@@ -33,45 +47,43 @@ def getValues(lVals):
             getValues(val)
         else:
             return val
-
-def loadJsonGzip(fileName):
-    start_time = time.time()
-    with gzip.open(fileName,"rt") as fin:
-        json_str = fin.read()
-        data = json.loads(json_str)
-        print ("\t LoadJson  :",fileName,":", int(time.time() - start_time), "S")
-        return data
-
-def saveJsonGzip(Json,fileName):
-    start_time = time.time()
-    with gzip.open(fileName,"w") as fout:
-        json_str = json.dumps(Json,indent=1) + "\n"
-        json_bytes = json_str.encode('utf-8')
-        fout.write(json_bytes)
-    print ("\t SaveJson  :", fileName, ":", int(time.time() - start_time), "S")
-
-def loadJson(filePath):
-    # open JSON file and parse contents
-    print ("Lading json",filePath)
-    start_time = time.time()
-    fh = open(filePath,'r')
-    data = json.load(fh)
-    fh.close()
-    print ("\t Loading time :", int(time.time() - start_time), "S")
-    return data
-
 def saveJson(Json,fileName):
-    print("Saving json",fileName)
     start_time = time.time()
-    with open(fileName, 'w') as fp:
-       json.dump(Json, fp, indent=1)
-    print("\t Saving time :", int(time.time() - start_time), "S")
+        ##replace here as overflow when writing
+        #with gzip.open(fileName,"w") as fout:
+        #    json_str = json.dumps(Json,indent=1) + "\n"
+        #    json_bytes = json_str.encode('utf-8')
+        #    fout.write(json_bytes)
 
+    with open(fileName, 'w') as fp:
+        json.dump(Json, fp, indent=1)
+    if fileName.split(".")[-1] == "gz":
+        newFileName = fileName.replace(".gz","")
+        os.system("mv "+ fileName + " " + newFileName)
+        os.system("gzip " + newFileName)
+
+    print ("\t SaveJson  :", fileName, ":", int(time.time() - start_time), "S")
+def loadJson(fileName):
+    # open JSON file and parse contents
+    #print ("Lading json",fileName)
+    if os.path.isfile(fileName):
+        start_time = time.time()
+        if fileName.split(".")[-1] == "gz":
+            with gzip.open(fileName, "rt") as fin:
+                json_str = fin.read()
+                data = json.loads(json_str)
+        else:
+            with open(fileName,'r') as fin:
+                data = json.load(fin)
+        print("\t LoadJson  :", fileName, ":", int(time.time() - start_time), "S")
+    else:
+        print("Missing Json file", fileName)
+        data = {}
+    return data
 def patternMatch(pattern,target_string):
     print  (target_string,pattern)
     result = pattern.searchString(target_string).asList()
     return result
-
 def pin2dict(pin):
     pinHash = {}
     pinList = pin.split("+")
@@ -190,7 +202,6 @@ def via2dict(via):
         viaHash[viaName]["RECT"][i]["LAYER"] = layer
         viaHash[viaName]["RECT"][i]["SHAPE"] = polygon
     return viaHash
-
 def module2dict(module):
     moduleHash = {}
     module=module.replace("\\","")
@@ -297,13 +308,11 @@ def instrefname(moduleHash,instName):
     else:
         print("Not found inst", instName)
         return "ERROR"
-
 def rename(self,key,newKey):
     ind = self._keys.index(key)
     self._keys[ind] = newKey
     self[newKey] = self[key]
     self._keys.pop(-1)
-
 def flatModule(moduleHash,topName):
     print("Getting Flat Cells")
     flatCellsHash = {}
@@ -339,96 +348,99 @@ def flatModule(moduleHash,topName):
         else:
             flatCellsHash[instName] = moduleHash[topName]["INST"][instName]
     return flatCellsHash
-
-
 def lef2hash(lefFile):
     ##read lef file , return the hash with macro nanme key
     lefHash = {}
     if os.path.isfile(lefFile):
-        with open(lefFile,"rt") as fp:
+        if lefFile.split(".")[-1] == "gz":
+            fp = gzip.open(lefFile,"rt")
+        else:
+            fp = open(lefFile,"rt")
         #print "lef2hash ", lefFile
-            for line0 in fp:
-                # print line0
-                if line0.find('MACRO ') == 0:
-                    macroName = line0.split()[1]
-                    # print macroName
-                    lefHash[macroName] = {}
-                    # parsing macro cell
-                    for line1 in fp:
-                        # print "in Macro", line1
-                        if line1.find("END") > -1:
-                            break
-                        elif line1.find("FOREIGN") > -1:
-                            lefHash[macroName]["forigin_x"],lefHash[macroName]["forigin_y"] = line1.split()[2:4]
-                        elif line1.find("ORIGIN") > -1:
-                            lefHash[macroName]["origin_x"],lefHash[macroName]["origin_y"] = line1.split()[1:3]
-                        elif line1.find(" SIZE ") > -1:
+        #print(lefFile,type(fp))
+        for line0 in fp:
+            # print line0
+            if line0.find('MACRO ') == 0:
+                macroName = line0.split()[1]
+                # print macroName
+                lefHash[macroName] = {}
+                # parsing macro cell
+                for line1 in fp:
+                    # print "in Macro", line1
+                    if line1.find("END") > -1:
+                        break
+                    elif line1.find("FOREIGN") > -1:
+                        lefHash[macroName]["forigin_x"],lefHash[macroName]["forigin_y"] = line1.split()[2:4]
+                    elif line1.find("ORIGIN") > -1:
+                        lefHash[macroName]["origin_x"],lefHash[macroName]["origin_y"] = line1.split()[1:3]
+                    elif line1.find(" SIZE ") > -1:
 
-                            lefHash[macroName]["width"]  = float(line1.split()[1])
-                            lefHash[macroName]["height"] = float(line1.split()[3])
+                        lefHash[macroName]["width"]  = float(line1.split()[1])
+                        lefHash[macroName]["height"] = float(line1.split()[3])
 
-                        elif line1.find("PIN ") > -1:
-                            pinName = line1.split()[1]
-                            # print "pin ",macroName, pinName
-                            lefHash[macroName]["pin"] = {}
-                            lefHash[macroName]["pin"][pinName] = {}
-                            ##parsing PIN section
-                            for line2 in fp:
-                                # print "in pin",line2
-                                if line2.find("END") > -1:
-                                    break
-                                elif line2.find("DIRECTION") > -1:
-                                    lefHash[macroName]["pin"][pinName]["dir"] = line2.split()[1]
-                                elif line2.find("USE") > -1:
-                                    lefHash[macroName]["pin"][pinName]["use"] = line2.split()[1]
-                                #elif line2.find("SHAPE") > -1:
-                                #    lefHash[macroName]["pin"][pinName]["SHAPE"] = line2.split()[1]
-                                #elif line2.find("ANTENNA") > -1:
-                                #    antKey, antValue = line2.split()[0], line2.split()[1:-1]
-                                #    lefHash[macroName]["pin"][pinName][antKey] = antValue
+                    elif line1.find("PIN ") > -1:
+                        pinName = line1.split()[1]
+                        # print "pin ",macroName, pinName
+                        lefHash[macroName]["pin"] = {}
+                        lefHash[macroName]["pin"][pinName] = {}
+                        ##parsing PIN section
+                        for line2 in fp:
+                            # print "in pin",line2
+                            if line2.find("END") > -1:
+                                break
+                            elif line2.find("DIRECTION") > -1:
+                                lefHash[macroName]["pin"][pinName]["dir"] = line2.split()[1]
+                            elif line2.find("USE") > -1:
+                                lefHash[macroName]["pin"][pinName]["use"] = line2.split()[1]
+                            #elif line2.find("SHAPE") > -1:
+                            #    lefHash[macroName]["pin"][pinName]["SHAPE"] = line2.split()[1]
+                            #elif line2.find("ANTENNA") > -1:
+                            #    antKey, antValue = line2.split()[0], line2.split()[1:-1]
+                            #    lefHash[macroName]["pin"][pinName][antKey] = antValue
 
-                                #ignored pin shape imformation as no request
-                                #elif line2.find("PORT") > -1:
-                                #    i = 0
-                                #    # parsing PORT section
-                                #    for line3 in fp:
-                                #        # print "in port",line3
-                                #        if line3.find("END") > -1:
-                                #            break
-                                #        elif line3.find("LAYER") > -1:
-                                #            layerName = line3.split()[1]
-                                #            # print layerName
-                                #            #lefHash[macroName]["pin"][pinName]["layer"] = layerName
-                                #        elif line3.find("RECT") > -1:
-                                #            # print "rect line", line3 ,i, type(lefHash["MACRO"][macroName]["pin"][pinName]["PORT"][layerName] )
-                                #            lefHash[macroName]["pin"][pinName]["llx"],lefHash[macroName]["pin"][pinName]["lly"] = line3.split()[-3:-1]
-                                #            l = line3.split()[2]
-                                #        #elif line3.find("POLYGON") > -1:
-                                #        #    lefHash[macroName]["pin"][pinName]["PORT"][layerName][
-                                #        #        i] = line3.split()[1:-1]
-                                #        #    i = i + 1
-                                #        #else:
-                                #        #    print "Found incorrect Keyword", line3, lefFile, fp.filelineno()
-                                #else:
-                                    #print "PIN Section Keyword", line2, lefFile, fp.filelineno()
-                #elif line0.find('SITE ') == 0:
-                #    siteName = line0.split()[1]
-                #    libHash["SITE"][siteName] = {}
-                #    for line1 in fp:
-                #        line1 = line1.strip("\n")
-                #        if line1.find('END ') == 0:
-                #            break
-                #        else:
-                #            # print "line", line1, type(line1)
-                #            match = re.match(r'\s*SYMMETRY\s+(\w+)\s+(\w+)', line1)
-                #            if match:
-                #                libHash["SITE"][siteName]["SYMMETRY"] = match.group(1), match.group(2)
-                #            match = re.match(r'\s*CLASS\s+(\w+)', line1)
-                #            if match:
-                #                libHash["SITE"][siteName]["CLASS"] = match.group(1)
-                #            match = re.match(r'\s*SIZE\s+(\S+)\s+BY\s+(\S+)', line1)
-                #            if match:
-                #                libHash["SITE"][siteName]["SIZE"] = float(match.group(1)), float(match.group(2))
+                            #ignored pin shape imformation as no request
+                            #elif line2.find("PORT") > -1:
+                            #    i = 0
+                            #    # parsing PORT section
+                            #    for line3 in fp:
+                            #        # print "in port",line3
+                            #        if line3.find("END") > -1:
+                            #            break
+                            #        elif line3.find("LAYER") > -1:
+                            #            layerName = line3.split()[1]
+                            #            # print layerName
+                            #            #lefHash[macroName]["pin"][pinName]["layer"] = layerName
+                            #        elif line3.find("RECT") > -1:
+                            #            # print "rect line", line3 ,i, type(lefHash["MACRO"][macroName]["pin"][pinName]["PORT"][layerName] )
+                            #            lefHash[macroName]["pin"][pinName]["llx"],lefHash[macroName]["pin"][pinName]["lly"] = line3.split()[-3:-1]
+                            #            l = line3.split()[2]
+                            #        #elif line3.find("POLYGON") > -1:
+                            #        #    lefHash[macroName]["pin"][pinName]["PORT"][layerName][
+                            #        #        i] = line3.split()[1:-1]
+                            #        #    i = i + 1
+                            #        #else:
+                            #        #    print "Found incorrect Keyword", line3, lefFile, fp.filelineno()
+                            #else:
+                                #print "PIN Section Keyword", line2, lefFile, fp.filelineno()
+            #elif line0.find('SITE ') == 0:
+            #    siteName = line0.split()[1]
+            #    libHash["SITE"][siteName] = {}
+            #    for line1 in fp:
+            #        line1 = line1.strip("\n")
+            #        if line1.find('END ') == 0:
+            #            break
+            #        else:
+            #            # print "line", line1, type(line1)
+            #            match = re.match(r'\s*SYMMETRY\s+(\w+)\s+(\w+)', line1)
+            #            if match:
+            #                libHash["SITE"][siteName]["SYMMETRY"] = match.group(1), match.group(2)
+            #            match = re.match(r'\s*CLASS\s+(\w+)', line1)
+            #            if match:
+            #                libHash["SITE"][siteName]["CLASS"] = match.group(1)
+            #            match = re.match(r'\s*SIZE\s+(\S+)\s+BY\s+(\S+)', line1)
+            #            if match:
+            #                libHash["SITE"][siteName]["SIZE"] = float(match.group(1)), float(match.group(2))
+        fp.close()
     else :
         #print"missed file ", lefFile
         print("missed file ", lefFile)
@@ -449,7 +461,11 @@ def def2hash(defFile):
     skipBkg = 1
     ## skipped as new format not recgnize
     skipVia = 1
-    with gzip.open(defFile, "rt") as fp:
+    if os.path.isfile(defFile):
+        if defFile.split(".")[-1] == "gz":
+            fp = gzip.open(defFile, "rt")
+        else:
+            fp = open(defFile, "rt")
         print("def2Json :", defFile)
         for line0 in fp:
             if line0.find('PINS') == 0 and skipPin == 0 :
@@ -568,8 +584,9 @@ def def2hash(defFile):
                 #exit()
 
         fp.close()
+    else:
+        print("missed def file",defFile)
     return dsgHash
-
 def vlg2hash(vlgFile):
     moduleHierHash = {}
     print ("verilog2json", vlgFile)
@@ -587,8 +604,6 @@ def vlg2hash(vlgFile):
                     moduleCont += line1.strip()
     fp.close()
     return moduleHierHash
-
-
 def i2NetEst2Hash(iccNetEst):
     localHash = {}
     if os.path.isfile(iccNetEst):
@@ -602,7 +617,6 @@ def i2NetEst2Hash(iccNetEst):
     else:
         print ("iccNetEst2Hash missed ", iccNetEst)
     return localHash
-
 def i2NetPhy2Hash(i2NetPhy):
     localHash = {}
     if os.path.isfile(iccNetPhy):
@@ -621,14 +635,10 @@ def i2NetPhy2Hash(i2NetPhy):
     else:
         print ("i2NetPhy to Hash missed ", iccNetPhy)
     return localHash
-
-
 def tile2top(tileJsonFile, mpuJsonFile,libJsonFile):
     return 0
-
 def cellDelay(iTran, oLoad,cellName, fromPin, toPin):
     return 0
-
 def libBom2Json(libBomFile,jsonOut):
     libBom = Bom(libBomFile)
     libBomHash = loadJson(libBomFile)
@@ -659,29 +669,27 @@ def libBom2Json(libBomFile,jsonOut):
         lefFile = item.get_filename()
         ipname = item.get_ipname()
         lefHash.update(lef2hash(lefFile))
-    saveJsonGzip(lefHash,jsonOut + "lefs.json.gz")
-
-
+    saveJson(lefHash,jsonOut + "lefs.json.gz")
 def fctBom2Json(fctBomFile,jsonOut,topName):
+    print("Building DB from Bom", fctBomFile)
     fctBomHash = Bom(fctBomFile)
     tileLefHash= {}
-    '''
+
     for item in fctBomHash.find_designfiles(filetype='lef'):
         tileName = item.get_ipname()
         lefFile = item.get_filename()
         # print lefFile, tileName
         tileLefHash.update(lef2hash(lefFile))
-    saveJson(tileLefHash, jsonOut + "tiles.lef.json")
-    '''
-    
-
+    saveJson(tileLefHash, jsonOut + "tilesLef.json.gz")
+    tileLefHash = {}
     # load tiop cell at first
-
     topHash = {}
+
+
     topDefFile = fctBomHash.find_designfiles(filetype='def',abstract="glassbox" ,ipname=topName)[0].get_filename()
     topHash = def2hash(topDefFile)
     print ("loading ", topDefFile)
-    saveJsonGzip(topHash, jsonOut + topName+".only.inst.json.gz")
+    saveJson(topHash, jsonOut + topName+".only.inst.json.gz")
 
     tileHash = {}
     for item in fctBomHash.find_designfiles(filetype='def',abstract="greybox"):
@@ -690,7 +698,8 @@ def fctBom2Json(fctBomFile,jsonOut,topName):
         print ("loading ", defFile)
         tileHash[tileName] = def2hash(defFile)
         #saveJson(tileHash[tileName],jsonOut+tileName+".design.json")
-    saveJsonGzip(tileHash, jsonOut + "tiles.inst.json.gz")
+    saveJson(tileHash, jsonOut + "tiles.inst.json.gz")
+
 
     #read verilog is commited , as tech issue
     '''
@@ -715,15 +724,25 @@ def fctBom2Json(fctBomFile,jsonOut,topName):
     flatVlgHash = flatModule(vlgIlmHash,topName)
     saveJson(flatVlgHash,jsonOut + "mpu.flat.vlg.json")
     '''
-    #topOnlyHash  = loadJsonGzip(jsonOut+topName+".only.inst.json.gz")
-    #tileHash     = loadJsonGzip(jsonOut+"tiles.inst.json.gz")
+    #topOnlyHash  = loadJson(jsonOut+topName+".only.inst.json.gz")
+    #tileHash     = loadJson(jsonOut+"tiles.inst.json.gz")
     topFlatHash = flatTopTile(topHash,tileHash)
-    return topFlatHash
+    #saveJson(topFlatHash,jsonOut + topName+".inst.json.gz")
+    tileHash = {}
+    topHash = {}
 
+    topHash = readSlackTable("./data/slackTable.rpt.gz")
+    topHash["INST"] = topFlatHash["INST"]
+    topFlatHash = {}
+
+    #saveJson(topHash, jsonOut + topName + ".json")
+    saveJson(topHash["INST"], jsonOut + topName + ".inst.json")
+    saveJson(topHash["NET"] , jsonOut + topName + ".net.json")
+    saveJson(topHash["PIN"] , jsonOut + topName + ".pin.json")
+
+    return topHash
 def flatTopTile(topHash,tileHash):
-
     topHashFlat = copy.deepcopy(topHash)
-
     for topInst in topHash["INST"]:
         if topHash["INST"][topInst]["refname"] in tileHash:
             tileName = topHash["INST"][topInst]["refname"]
@@ -763,7 +782,6 @@ def flatTopTile(topHash,tileHash):
             #for tileNet in tileHash[tileName]["NET"]:
             #    flatNet = topInst + "/" + tileNet
     return topHashFlat
-
 def lib2hash(libFile):
     libHash = {}
     braceCounter = 0
@@ -849,7 +867,6 @@ def lib2hash(libFile):
     else:
         print ("miss libFile ",libFile)
     return libHash
-
 def readSlackTable(slackTableFile):
 
     topHash = {}
@@ -889,14 +906,11 @@ def readSlackTable(slackTableFile):
                         #if instName not in topHash["INST"]:
                         #    topHash["INST"][instName] = {}
 
-    print ("\t Loading time :", int(time.time() - start_time), "S")
+    print ("\t Loading SlackTable :", int(time.time() - start_time), "S")
     return topHash
                 #print pinName,top_net_name,worst_fall_slack,worst_rise_slack,max_fall_er,max_rise_er,max_fall_ceff,max_rise_ceff
                 #print line1.split()
                 #exit()
-
-
-
 def receiveAll(s):
 
     dataAll = ""
@@ -909,7 +923,6 @@ def receiveAll(s):
         i += 1
         print(dataAll, i, data.find("DONE"))
     return dataAll
-
 def recvEnd(theSocket):
     END = "DONE"
     totalData = [];
@@ -930,7 +943,6 @@ def recvEnd(theSocket):
                 break
     #return ''.join(totalData)
     return totalData
-
 def report_timing( ):
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     with open("/home/yaguo/zoo/eda2json/ptServer", "r") as fp:
@@ -942,8 +954,8 @@ def report_timing( ):
         allData = recvEnd(s)
         s.close
         return allData
-
 def pt_shell():
+
     print("Enter Pt mode, enjoy.")
 
     while True:
@@ -953,8 +965,8 @@ def pt_shell():
                return 0
            else :
                s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-               with open("/home/yaguo/zoo/eda2json/ptServer", "r") as fp:
-                   ip, port = fp.readline().rstrip().split()
+               with open("./data/ptserver.list", "r") as fp:
+                   nickName ,targetName, ip, port = fp.readline().rstrip().split()
                    server = (ip, int(port))
                    s.connect(server)
                    s.sendall(cmd.encode())
@@ -963,13 +975,347 @@ def pt_shell():
                    #print(allData)
        except ValueError:
            print("wrong command")
+def clkTranRpt2json ():
 
+    for clkTran in glob.glob(rundir + "rpts/PtDrv*/clock_trans.rpt.gz"):
+        print("Reading clock tran report", clkTran)
+        scenarios = re.split("\/", clkTran)
+        # print type(scenarios),len(scenarios),type(clkTran),scenarios
+        scenario = scenarios[-2]
+        fp = fi.FileInput(clkTran, openhook=fi.hook_compressed)
+        clkTranHash = {}
+        for line0 in fp:
+            # print line0
+            if line0.find("Net:") == 0:
+                netName = line0.split()[1]
+                #print "netName", netName
+                clkTranHash[netName] = {}
+                clkTranHash[netName][scenario] = {}
+                clkTranHash[netName][scenario]["Sink"] = []
+                for line1 in fp:
+                    if line1.find(" ;") == 0:
+                        break
+                    elif line1.find("Slack:") > -1:
+                        clkTranHash[netName][scenario]["Slack"] = float(line1.split()[-1])
+                    elif line1.find("Value") > -1:
+                        clkTranHash[netName][scenario]["Value"] = float(line1.split()[-1])
+                    elif line1.find("Limit") > -1:
+                        clkTranHash[netName][scenario]["Limit"] = float(line1.split()[-1])
+                    elif line1.find("CLOCK") > -1:
+                        clkTranHash[netName][scenario]["CLOCK"] = float(line1.split()[-1])
+                    elif line1.find("Driver") > -1:
+                        driver = line1.split()[1]
+                        refName = line1.split()[-1]
+                        refName = re.sub(r'[\(|\)]', "", refName)
+                        line2 = fp.readline()
+                        slew  = line2.split()[-1]
+                        clkTranHash[netName][scenario]["DRIVER"]  = []
+                        clkTranHash[netName][scenario]["DRIVER"].append([driver, refName,slew])
+                        clkTranHash[netName][scenario]["SINK"] =  []
+                    elif line1.find("Sink") > -1:
+                        sink = line1.split()[1]
+                        refName = line1.split()[-1]
+                        refName = re.sub(r'[\(|\)]', "", refName)
+                        line2 = fp.readline()
+                        slew = line2.split()[-1]
+                        clkTranHash[netName][scenario]["SINK"].append([sink, refName,slew])
+        fp.close()
+    with open('clkTrans.json', 'w') as fp:
+        json.dump(clkTranHash, fp, indent=1)
+    fp.close()
+def fixCTrans(dsgHash,libHash,rptHash,ecoFile):
+    for net in rptHash:
+        for sce in rptHash[net]:
+            driver, driverRef, driverSlew =  rptHash[net][sce]["DRIVER"][0]
+            driveStrength = driverRef.split("_")[-1]
+            driverInst = driver.split("\/")[0:-1].join("\/")
+            value =  rptHash[net][sce]["Value"]
+            limit =  rptHash[net][sce]["Limit"]
+            sinkNum = len(rptHash[net][sce]["Sink"])
+            print(driver,driverInst, driverRef, driverSlew, value ,limit, driveStrength)
+            if driverSlew / limit > 0.8:
+                print("insert_buffer_on_route -net [get_nets -of [get_pins", driverRef, "/CLK]]")
+            elif driveStrength < 6:
+                print("size_cell ",driverInst,"HDBLVT08_BUF_CK_8")
+            elif sinkNum > 3:
+                # check the mahantten distance
+                sink1CelLoc = rptHash[net][sce]["Sink"][0]
+def compareDef (refDef, tarDef, ecoFile):
+    refDefHash = load_json(refDef)
+    tarDefHash = load_json(tarDef)
+    diffHash = {}
+    diffHash["CHANGE"] = {}
+    diffHash["ADD"] = {}
+    for dict_key in refDefHash.keys():
+        if dict_key not in tarDefHash:
+            diffHash["ADD"][dict_key] = tarDefHash[dict_key]
+        elif compareJson(refDefHash[dict_key],tarDefHash[dict_key]) == False:
+                diffHash["CHANGE"][dict_key] = tarDefHash[dict_key]
+    for dict_key in tarDefHash.keys():
+        if dict_key not in refDefHash:
+            diffHash["DEL"][dict_key] = tarDefHash[dict_key]
 
+    with open('./json/diff.json', 'w') as JsonFP:
+        json.dump(diffHash, JsonFP, indent=1)
 
+    json2def("./json/diff.json",ecoFile)
+def json2def(jsonFile, ecoFile):
+    #support componets only
 
+    tile = """VERSION 5.7 ;
+DIVIDERCHAR "/" ;
+BUSBITCHARS "[]" ;
+DESIGN smu_zcn1_t ;
+UNITS DISTANCE MICRONS 2000 ;
+COMPONENTS 100 ; """
+    defHash = load_json(jsonFile)
+
+    with open(ecoFile,"w") as fp:
+
+        fp.writelines(tile + "\n")
+        for dict_key in defHash.keys():
+            if dict_key == "ADD":
+                print("not suport add cell")
+            elif dict_key == "CHANGE":
+                for instName in defHash[dict_key].keys():
+                    setStatus = "set_placement_status placed [get_flat_cell  "+ instName + " ]"
+                    location = " ".join(defHash[dict_key][instName]["LOCATION"])
+                    #print "oritation: ", type(defHash[dict_key][instName]["ORITATION"])
+                    #print "instName:", type(instName)
+                    defLine = " - " + instName + " " +  defHash[dict_key][instName]["REFNAME"]  + \
+                              " + " +  defHash[dict_key][instName]["STATUS"] +  \
+                              " ( " + location + " ) " + defHash[dict_key][instName]["ORITATION"] + " ;"
+                    #setRef    = "size_cell "+ instName + defHash[dict_key][instName]["REFNAME"]
+                    #setLocation = "move_object [get_flat_cell" + instName + "]" + "-to" + "{" + +"}"
+                    #setLocation = "move_object [get_flat_cell " + instName + "]" + " -to" + " { "  + location + " } "
+                    fp.writelines(defLine + "\n" )
+                    #fp.writelines(defHash[dict_key][instName]["LOCATION"])
+
+                    #fp.write(setRef)
+                    #fp.write(setLocation + "\n")
+        fp.writelines("END COMPONENTS" + "\n" + "END DESIGN" + "\n")
+def json2eco(jsonFile, ecoFile):
+    #support componets only
+    defHash = load_json(jsonFile)
+    with open(ecoFile,"w") as fp:
+        for dict_key in defHash.keys():
+            if dict_key == "ADD":
+                print("not suport add cell")
+            elif dict_key == "CHANGE":
+                for instName in defHash[dict_key].keys():
+                    setStatus = "set_placement_status placed [get_flat_cell  "+ instName + " ]"
+                    location = " ".join(defHash[dict_key][instName]["LOCATION"])
+                    #setRef    = "size_cell "+ instName + defHash[dict_key][instName]["REFNAME"]
+                    #setLocation = "move_object [get_flat_cell" + instName + "]" + "-to" + "{" + +"}"
+                    setLocation = "move_object [get_flat_cell " + instName + "]" + " -to" + " { "  + location + " } "
+                    fp.writelines(setStatus + "\n" )
+                    #fp.writelines(defHash[dict_key][instName]["LOCATION"])
+
+                    #fp.write(setRef)
+                    fp.write(setLocation + "\n")
+def compareJson(data_a,data_b):
+    # type: list
+	if (type(data_a) is list):
+		# is [data_b] a list and of same length as [data_a]?
+		if (
+			(type(data_b) != list) or
+			(len(data_a) != len(data_b))
+		):
+			return False
+
+		# iterate over list items
+		for list_index,list_item in enumerate(data_a):
+			# compare [data_a] list item against [data_b] at index
+			if (not compareJson(list_item,data_b[list_index])):
+				return False
+
+		# list identical
+		return True
+
+	# type: dictionary
+	if (type(data_a) is dict):
+		# is [data_b] a dictionary?
+		if (type(data_b) != dict):
+			return False
+
+		# iterate over dictionary keys
+		for dict_key,dict_value in data_a.items():
+			# key exists in [data_b] dictionary, and same value?
+			if (
+				(dict_key not in data_b) or
+				(not compareJson(dict_value,data_b[dict_key]))
+			):
+				return False
+
+		# dictionary identical
+		return True
+
+	# simple value - compare both value and type for equality
+	return (
+		(data_a == data_b) and
+		(type(data_a) is type(data_b))
+	)
+def fixDeltaTrans(rundir):
+    netList = []
+    rpt = rundir + "rpts/SortHldEcoRouteFuncFFG1p05vffg1p05v0cEcoRouteSxGrp/H.INTERNAL.sorted.gz"
+    ecoFile = rundir + "data/deltaTrans.eco"
+    fp = fi.FileInput(rpt, openhook=fi.hook_compressed)
+    for line1 in fp:
+        if line1.find("(net)") > 0:
+            netAttr = line1.split()
+            if len(netAttr) > 3:
+                netName = netAttr[0]
+                netFanout = netAttr[2]
+                netCap = float(netAttr[3])
+                if netCap > 8:
+                    for line2 in fp:
+                        flatPinList = line2.split()
+                        if len(flatPinList) == 9:
+                            deltaTrans = float(flatPinList[2])
+                            if deltaTrans < -10 :
+                                #print "debug", netName,deltaTrans,flatPinList[1]
+                                #print line2
+                                netList.append(netName)
+                            break
+
+    #                print line1
+    bufCell = "HDBLVT08_BUF_4"
+    preFix = "yaguo_1029_deltaTrans"
+    netList =list(set(netList))
+    #with open(ecoFile,"w") as fpw:
+    #    for net in netList:
+    #            fpw.write("catch { add_buffer_on_route "+ net + " -lib_cell " + bufCell +  " -net_prefix " + preFix + " -cell_prefix " + preFix + " -repeater_distance 40 -no_legalize -punch_port -verbose}\n")
+    return netList
+def fixSiHold():
+    pinList = []
+    rpt = rundir + "rpts/SortHldEcoRouteFuncFFG1p05vffg1p05v0cEcoRouteSxGrp/H.INTERNAL.sorted.gz"
+    fp = fi.FileInput(rpt, openhook=fi.hook_compressed)
+    for line1 in fp:
+        flatPinLine = line1.split()
+        if len(flatPinLine) == 9 :
+            endPoint =  flatPinLine[0]
+            line2 = fp.readline()
+            if line2.find("data arrival time") > -1:
+                #print "endpoint:", endPoint
+                pinList.append(endPoint)
+
+    bufCell = "HDBLVT08_BUF_1"
+    preFix = "yaguo_1030_holdFix"
+    i2Eco = open(rundir + "/data/holdfix.i2.eco","w")
+    ptEco = open(rundir + "/data/holdfix.pt.eco", "w")
+    for pin in pinList:
+        i2Eco.write("catch { buffer_pin "+ pin + " " + bufCell + " " + preFix + " }\n")
+        ptEco.write("catch { insert_buffer " + pin + " " + bufCell + " }\n")
+def fixDrv(rundir):
+    dwRpt = rundir + "mis_checks/double_switch.txt"
+    dtRpt = rundir + "mis_checks/data_trans.txt"
+    sibRpt = rundir  + "mis_checks/si_bottleneck.txt"
+    glhRpt = rundir + "mis_checks/glitch.txt"
+    allRpt = glob.glob(rundir+"mis_checks/"+"*")
+    #fpw = open(rundir + "data/drvFix.eco", "w")
+    drvNetList = []
+    for rpt in allRpt:
+        if re.search(r"double_switch",rpt):
+            print("open ", rpt)
+            with open(rpt,"r") as fp :
+                for line1 in fp:
+                    net = line1.split()[0]
+                    drvNetList.append(net)
+            print("drvnet1 count", len(drvNetList))
+        elif re.search(r"data_trans",rpt):
+            print("open ", rpt)
+            i2Eco = open(rundir + "/data/dtran.i2.eco", "w")
+            with open(rpt, "r") as fp:
+                for line1 in fp:
+                    #print line1.split()
+                    net,driver,refName = line1.split()[0:3]
+                    drvNetList.append(net)
+                    bufCell = "HDBLVT08_BUF_8"
+                    preFix = "yaguo_1101_dtranFix"
+                    #i2Eco.write(" buffer_pin " + driver + " " + bufCell + " " + preFix + " \n")
+            print("drvnet1 count", len(drvNetList))
+
+        elif re.search(r'si_bottleneck|glitch',rpt):
+            print("open ", rpt)
+            with open(rpt, "r") as fp:
+                for line1 in fp:
+                    net  = line1.rstrip()
+                    drvNetList.append(net)
+            print("drvnet2 count", len(drvNetList))
+    bufCell = "HDBLVT08_BUF_4"
+    preFix = "yaguo_1027_drvFix"
+    drvNetList = list(set(drvNetList))
+    #netJsonFile = "./json/smu_zcn1_tu.net.json"
+    #netHash =
+    #for net in drvNetList:
+    #   #fpw.write("catch { add_buffer_on_route "+ net + " -lib_cell " + bufCell +  " -net_prefix " + preFix + " -cell_prefix " + preFix + " -first_distance 10 " + " -repeater_distance 40 -no_legalize -punch_port -verbose}\n")
+    #   fpw.write(
+    #            "catch { add_buffer_on_route " + net + " -lib_cell " + bufCell + " -net_prefix " + preFix + " -cell_prefix " + preFix + " -repeater_distance 40 -no_legalize -punch_port -verbose}\n")
+    #fpw.close()
+    print("drvnet count", len(drvNetList))
+    return drvNetList
+def fixStpByRmBuf(rundir):
+    #rpt = rundir + "rpts/SortStpEcoRouteFuncTT0p65vtt0p65v0cEcoRouteGrp/S.INTERNAL.sorted.gz"
+    rpt = rundir + "rpts/zcnclk.rpt"
+    eco = rundir + "data/stpfix.eco"
+    fp = fi.FileInput(rpt, openhook=fi.hook_compressed)
+    instList = []
+    for line1 in fp:
+        if re.search("yaguo_1020_holdFix_\d+\/X\s+\(",line1):
+            pin = line1.split()[0]
+            if pin.find("vl_wr_smu_zcn1_t1_sms_wrap") < 0 :
+                instList.append("/".join(pin.split('/')[0:-1]))
+
+    instList = list(set(instList))
+    with open(eco, "w") as fpw:
+       for inst in instList:
+          fpw.write("catch { remove_buffer " + inst + " }\n")
+def fixAll():
+    # drvNets = fixDrv(rundir)
+    drvNets = []
+    dtNets = fixDeltaTrans(rundir)
+
+    drvNets.extend(dtNets)
+    drvNetList = list(set(drvNets))
+
+    bufCell = "HDBLVT08_BUF_8"
+    preFix = "yaguo_1101_siDelay"
+    fpw = open(rundir + "data/drvFix.eco", "w")
+    for net in drvNetList:
+        fpw.write(
+            " add_buffer_on_route " + net + " -lib_cell " + bufCell + " -net_prefix " + preFix + " -cell_prefix " + preFix + " -first_distance 5" + " -repeater_distance_length_ratio 0.5 -no_legalize -punch_port -verbose \n")
+    fpw.close()
+    # fixStpByRmBuf(rundir)
+    fixSiHold()
+
+    # refJsonFile = "json/a.json"
+    # tarJsonFile = "json/b.json"
+    # ecoFile = "./ecos/place.def"
+    ##json2def("./json/diff.json",ecoFile)
+    # compareDef(refJsonFile,tarJsonFile,ecoFile)
+
+    # rundir = "/proj/ariel_pd_vol88/yaguo/NLD/0912_eco/main/pd/tiles/ECO_1002_run2/"
+    # dsgJsonFile = "./comp.json"
+    # libJsonFile = "./lib.json"
+    # ctransJsonFile = "./clkTrans.json"
+    #
+    # ecoFile = "./fixCtrans.tcl"
 class get_cell():
-    def __init__(self,topHash, instName):
+    # if topHash is empty, get the data romve the remote side
+    def __init__(self, topHash, instName):
+        #print(type(topHash))
         self.fullName = instName
+        server = topHash["HOST"]
+        py = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        py.connect(server)
+        cmd = "INST:"+instName
+        py.sendall(cmd.encode())
+        data = receiveAll(py)
+        topHash["INST"] = {}
+        topHash["INST"][instName] = data
+        #print(type(data), data)
+        py.close()
+        '''
         try:
             self.refName = topHash["INST"][instName]["refName"]
         except ValueError:
@@ -991,7 +1337,8 @@ class get_cell():
             self.status = topHash["INST"][instName]["status"]
         except ValueError:
             print(instName + " was not found")
-    def moveTO(self):
+        '''
+
 '''
 regression lef2json, lib2josn, libBom2Json
 libBom2Json("/proj/ariel_pd_lib1/TSMC7N/library/lib_PD.D.8.1/bom.json","/proj/arielc0pd_fct03/yaguo/json/ariel/fct/")
