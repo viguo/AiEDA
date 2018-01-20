@@ -1,7 +1,7 @@
 import socketserver as ss
 import socket
 import sys, os; sys.path.insert(0, os.getenv('FLOW_dir','/home/yaguo/scripts/eda2json/'))
-import eda2json as ej
+import pyLib as ej
 
 
 

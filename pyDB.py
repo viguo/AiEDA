@@ -6,7 +6,7 @@ import json
 import multiprocessing as mp
 import glob
 import sys; sys.path.insert(0, os.getenv('FLOW_dir','/home/yaguo/scripts/eda2json/'))
-import eda2json as ej
+import pyLib as ej
 
 
 if __name__=='__main__':
