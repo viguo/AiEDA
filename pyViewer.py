@@ -41,8 +41,8 @@ class Example(QMainWindow):
         editMenu = menubar.addMenu('&Edit')
 
         #self.resize(250,150)
-        #self.center()
-        self.textEditor()
+        self.center()
+        #self.textEditor()
 
         self.setWindowTitle('defViewer')
         self.statusBar().showMessage("ready")
