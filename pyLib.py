@@ -2,7 +2,7 @@ import os, time, random
 
 
 #import sys; sys.path.insert(0, os.getenv('FLOW_dir','/tool/aticad/1.0/flow/TileBuilder') + '/lib')
-import sys; sys.path.insert(0, os.getenv('FLOW_dir','/home/yaguo/scripts/amdPython3'))
+import sys
 from multiprocessing import Pool
 from multiprocessing import Process,Manager
 import copy
@@ -15,7 +15,7 @@ import numpy as np
 import json,gzip
 import multiprocessing as mp
 import glob
-from Bom  import Bom, IP
+#from Bom  import Bom, IP
 import socket
 def params2Json(tileParams):
     paramHash = {}
