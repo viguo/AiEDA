@@ -2,7 +2,20 @@ import os, sys,glob,re,stat
 import pyLib
 
 memList = ["128x64","256x64","512x64","1024x64","128x128","256x128","512x128","1024x128","128x256","256x256"]
-memList = ["32x128"]
+memList = ["128x256", \
+           "128x64", \
+           "512x64", \
+           "256x128", \
+           "128x128", \
+           "1026x64", \
+           "256x32",\
+           "256x64", \
+           "32x128",\
+           "64x128", \
+           "64x64", \
+           "32x144" \
+           "32x128" \
+            ]
 compilerName = {}
 #compilerName["1prf"] = "tsn28hpcp1prf_20120200_130a"
 compilerName["2prf"]  = "tsn28hpcp2prf_20120200_130a"
@@ -66,10 +79,10 @@ for k, v in compilerName.items():
     #os.system(compiler + " -LVT -NonBIST -NonSD -NonSLP")
     os.environ["MC_HOME"] = os.getcwd()
     if compiler.find("dpsram") > -1:
-        os.system(compiler + "  -DATASHEET -NonBIST -NonSD -NonSLP")
+        os.system(compiler + " -NonBIST -NonSD -NonSLP")
     else:
-        os.system(compiler + " -LVT -NonBIST  -NonSD -NonSLP  -DATASHEET")
-        os.system(compiler + " -SVT -NonBIST  -NonSD -NonSLP  -DATASHEET ")
+        os.system(compiler + " -LVT -NonBIST  -NonSD -NonSLP  ")
+        os.system(compiler + " -SVT -NonBIST  -NonSD -NonSLP   ")
 
 
     for cfgFile in glob.glob("t*.cfg"):
