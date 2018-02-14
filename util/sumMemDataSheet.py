@@ -47,7 +47,7 @@ for mem in glob.glob(snpsMem):
                 memAttr[name]["bitCell"] = ramBit[0]
             rdPwr = snpsRdPwr.findall(line)
             if len(rdPwr) > 0:
-                memAttr[name]["rdPwrPerMHz"] = float(rdPwr[0].split("|")[0]) * float(memAttr[name]["width"])
+                memAttr[name]["rdPwrPerMHz"] = float(rdPwr[0].split("|")[0]) * 1000
                 #print(name, rdPwr[0].split("|"))
             ramFreq = snpsOpFreq.findall(line)
             if len(ramFreq) > 0:
@@ -60,8 +60,9 @@ with open(sumResult, "wt") as fout:
     fout.write("\n")
     print(*outputFormat)
     for memName in memAttr:
-        print(memName," ", end="")
+        print(memName," ", end=" ")
         fout.write(memName)
+        fout.write(" ")
         for i in range(1,len(outputFormat)):
             key = outputFormat[i]
             #print(key,i,memAttr[memName][key],end="#")
