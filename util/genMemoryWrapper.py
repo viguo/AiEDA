@@ -1,51 +1,57 @@
 import os, sys,glob,re,stat
 import pyLib
+import math
 
-memConfig = "/Users/guoyapeng/work/DLM1/hw/memList.csv"
-
+#memConfig = "/Users/guoyapeng/work/DLM1/hw/memList.csv"
+memConfig = "./memList.csv"
+outDir = "/home/yaguo/works/pnr/1.mem/"
 
 ram1p = '''
-module prefix_portP_depthW_widthB_bwebBM (clk,  wrEn, csEn, addr, wrData, rdData);
-parameter AddressSize = width;
-parameter WordSize = depth;
+module prefix_portP_depthW_widthB_bwebBM (clk, wrEn, csEn, addr, wrData, rdData,sd,slp);
+//parameter AddressSize = width;
+//parameter WordSize = depth;
 
-input  [AddressSize-1:0] Address;
-input  [WordSize-1:0] wrData;
-output reg [WordSize-1:0] rdData;
+input  [AddressSize-1:0] addr;
+input  [width-1:0] wrData;
+input  clk, wrEn, csEn;
+input  sd, slp;
+output [width-1:0] rdData;
 
-input clk, wrEn, rdEn;
 
-`ifdef TSMC28HPCP_SRAM
-    TSMC28HPC_MEMORY_MODEL
+`ifdef T28HPCP_TSMC_SRAM
+T28HPCP_TSMC_SRAM_MODEL
 `elsif SNPS28HPC_SRAM
     TSMC28HPC_MEMORY_MODEL
 `else 
-reg [WordSize-1:0] Mem [0:(1<<AddressSize)-1];
-
-always @(posedge clk)
-    if (rdEn)
-        if (wrEn)
-            Mem[Address] = Data
-        else
-            rdData = Mem[Address];
-    else
-        rdData = WordSize{1'bz}
-            
+   reg [WordSize-1:0] Mem [0:width-1];
+   reg [width-1:0]  rdDataReg
+   always @(posedge clk)
+       if (csEn)
+           if (wrEn)
+               Mem[addr] = wrData ;
+           else
+               rdData = Mem[addr];
+       else
+           rdDataReg = WordSize'b0;
+    assign rdData = rdDataReg;
+`endif            
 endmodule
 '''
 
 ram2p = '''
-module sram_portP_depthW_widthB_bwebBM ( clk, wrEn, rdEn, wrAddr, rdAddr, wrData, rdData, bweb) ;
-parameter AddressSize = width;
-parameter WordSize = depth;
-parameter bitMask = bweb;
+module prefix_portP_depthW_widthB_bwebBM ( clk, wrEn, rdEn, wrAddr, rdAddr, wrData, rdData, wrMask) ;
+//parameter AddressSize = width;
+//parameter WordSize = depth;
+//parameter bitMask = bweb;
 
-input clk,rdEn, wrEn,
-input [AddressSize-1:0] wrAddr,
-input [WordSize-1:0] wrData,
+input clk,rdEn, wrEn;
+input sd, slp;
+input [AddressSize-1:0] wrAddr;
+input [width-1:0] wrData, wrMask;
 
-input [AddressSize-1:0] rdAddr,
-output reg [WordSize-1:0] rdData
+input [AddressSize-1:0] rdAddr;
+reg [width-1:0] rdDataReg;
+output [width-1:0] rdData;
 
 
 `ifdef TSMC28HPCP_SRAM
@@ -54,40 +60,86 @@ output reg [WordSize-1:0] rdData
     TSMC28HPC_MEMORY_MODEL
 `else 
 
-reg [WordSize-1:0] memory ;[AddressSize-1:0]
+reg [WordSize-1:0] memory [AddressSize-1:0] ;
 
-always @ (posedge clk)
+wire [width-1:0] wrDataTemp;
+
+genvar wrBit;
+generate
+  for (wrBit=0; wrBit < bitMask ; wrBit = wrBit + 1 ) 
+    begin : write_ram_data
+      assign wrDataTemp[wrBit] = wrMask[wrBit] ? wrData[wrBit] : memory[wrAddr][wrBit] ;
+    end
+endgenerate
+
+always @ (posedge clk) begin
     if(wrEn)        
-        genvar wrBit;
-        generate
-        for (wrBit=0; wrBit < bitMask ; wrBit = wrBit + 1 ) begin : write_ram_data
-            assgin  memory[wrAddr][wrBit] = bweb[wrBit] ? wrData[wrBit] : memory[wrAddr][wrBit]
+        memory[wrAddr] = wrDataTemp;
                                                  
     if(rdEn)
-        rdData<=memory[rdAddr];
+        rdDataReg = memory[rdAddr];
+end
+assign rdData = rdDataReg;
+`endif
 endmodule
+'''
+
+tsmc1prfModel = '''
+  TS5N28HPCPSVTA_depth_X_width_M2S ram_N_(.CLK(clk), 
+                                   .CEB(csEn), 
+                                   .WEB(wrEn),
+                                   .SLP(slp),
+                                   .SD(sd),
+                                   .A(addr_N_), 
+                                   .D(wrData_N_),
+                                   .Q(rdData_N_));  
 '''
 
 with open(memConfig,"r") as fin:
     for file in fin:
         preFix,port,depth,width,bweb = file.rstrip().split(',')
+
         if preFix.find("prefix") < 0:
-            ramName = "/Users/guoyapeng/work/DLM1/hw/rtl/sram/"+preFix+"_"+port+"P_"+depth+"W_"+width+"B_"+bweb+"BM"
+            addrSize = str(math.ceil(math.log2(int(depth))))
+
+            ramName = outDir+preFix+"_"+port+"P_"+depth+"W_"+width+"B_"+bweb+"BM"
             with open(ramName+".v","w") as fout:
                 if int(port) == 1 :
-                    ram1p = ram1p.replace("prefix",preFix)
-                    ram1p = ram1p.replace("port",port)
-                    ram1p = ram1p.replace("width",width)
-                    ram1p = ram1p.replace("bweb",bweb)
-                    #print(ram1p)
-                    fout.write(ram1p)
+                    targetRam = ram1p.replace("prefix",preFix)
+                    targetRam = targetRam.replace("port",port)
+                    targetRam = targetRam.replace("depth", depth)
+                    targetRam = targetRam.replace("width",width)
+                    targetRam = targetRam.replace("WordSize",depth)
+                    targetRam = targetRam.replace("AddressSize",addrSize)
+                    targetRam = targetRam.replace("bweb",bweb)
+                    ### insert tsmc memory
+                    tsmc1pMaxWidth = 144
+                    tsmc1pMaxDepth = 128
+                    widthSplitCount = math.ceil(int(width) / tsmc1pMaxWidth)
+                    depthSplitCount = math.ceil(int(depth) / tsmc1pMaxDepth)
+
+                    dataSplitLogic = ""
+                    addrSplitLogic = ""
+                    instMemLogic = ""
+                    newWidth = math.ceil(int(width)/widthSplitCount / 2) * 2
+                    newDepth = math.ceil(int(depth)/depthSplitCount / 2) * 2
+
+                    newAddr = int(int(addrSize) - math.log(depthSplitCount,2))
+                    for i in range(0,widthSplitCount):
+
+
+                    fout.write(targetRam)
+
                 elif int(port) == 2 :
-                    ram2p = ram2p.replace("prefix", preFix)
-                    ram2p = ram2p.replace("port", port)
-                    ram2p = ram2p.replace("width", width)
-                    ram2p = ram2p.replace("depth", depth)
-                    ram2p = ram2p.replace("bweb", bweb)
-                    fout.write(ram2p)
+                    targetRam = ram2p.replace("prefix", preFix)
+                    targetRam = targetRam.replace("port", port)
+                    targetRam = targetRam.replace("width", width)
+                    targetRam = targetRam.replace("depth", depth)
+                    targetRam = targetRam.replace("AddressSize",addrSize)
+                    targetRam = targetRam.replace("WordSize",depth)
+                    targetRam = targetRam.replace("bitMask",bweb)
+                    targetRam = targetRam.replace("bweb", bweb)
+                    fout.write(targetRam)
                 else:
                     print(port)
 

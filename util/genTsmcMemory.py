@@ -79,10 +79,10 @@ for k, v in compilerName.items():
     #os.system(compiler + " -LVT -NonBIST -NonSD -NonSLP")
     os.environ["MC_HOME"] = os.getcwd()
     if compiler.find("dpsram") > -1:
-        os.system(compiler + " -NonBIST -NonSD -NonSLP")
+        os.system(compiler + " -NonBIST  ")
     else:
-        os.system(compiler + " -LVT -NonBIST  -NonSD -NonSLP  ")
-        os.system(compiler + " -SVT -NonBIST  -NonSD -NonSLP   ")
+        os.system(compiler + " -LVT -NonBIST   ")
+        os.system(compiler + " -SVT -NonBIST  ")
 
 
     for cfgFile in glob.glob("t*.cfg"):
