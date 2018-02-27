@@ -1,10 +1,16 @@
 import os, sys,glob,re,stat
 import pyLib
 import math
+import platform
+
+if ( (os.uname()[0]) == "Darwin" ) :
+    outDir = "/Users/guoyapeng/work/DLM1/hw/rtl/rams/"
+else:
+    outDir = "/home/yaguo/works/pnr/1.mem/"
 
 #memConfig = "/Users/guoyapeng/work/DLM1/hw/memList.csv"
 memConfig = "./memList.csv"
-outDir = "/home/yaguo/works/pnr/1.mem/"
+
 
 ram1p = '''
 module prefix_portP_depthW_widthB_bwebBM (clk, wrEn, csEn, addr, wrData, rdData,sd,slp);
@@ -86,8 +92,8 @@ endmodule
 
 tsmc1prfModel = '''
   TS5N28HPCPSVTA_depth_X_width_M2S ram_N_(.CLK(clk), 
-                                   .CEB(csEn), 
-                                   .WEB(wrEn),
+                                   .CEB(csEn_N_), 
+                                   .WEB(wrEn_N_),
                                    .SLP(slp),
                                    .SD(sd),
                                    .A(addr_N_), 
@@ -113,8 +119,8 @@ with open(memConfig,"r") as fin:
                     targetRam = targetRam.replace("AddressSize",addrSize)
                     targetRam = targetRam.replace("bweb",bweb)
                     ### insert tsmc memory
-                    tsmc1pMaxWidth = 144
-                    tsmc1pMaxDepth = 128
+                    tsmc1pMaxWidth = 256
+                    tsmc1pMaxDepth = 256
                     widthSplitCount = math.ceil(int(width) / tsmc1pMaxWidth)
                     depthSplitCount = math.ceil(int(depth) / tsmc1pMaxDepth)
 
@@ -132,16 +138,16 @@ with open(memConfig,"r") as fin:
 
                         instMemLogic = ""
 
-                        dataSplitLogic += " assign " + "wrData"+str(i) + "[" + str(newWidth-1)+ ":0] = wrData[" +str(newWidth*(i+1) -1)+":"+str(newWidth*i) + "]\n"
-                        dataSplitLogic += " assign " + "rdData" + "[" + str(
-                            newWidth*(i+1) - 1) + ":" + str(newWidth*i) + "] = rdData" + str(i) + "[" + str(newWidth  - 1) + ":0] \n"
+                        #dataSplitLogic += " assign " + "wrData"+str(i) + "[" + str(newWidth-1)+ ":0] = wrData[" +str(newWidth*(i+1) -1)+":"+str(newWidth*i) + "]\n"
+                        #dataSplitLogic += " assign " + "rdData" + "[" + str(
+                        #    newWidth*(i+1) - 1) + ":" + str(newWidth*i) + "] = rdData" + str(i) + "[" + str(newWidth  - 1) + ":0] \n"
 
                         for j in range(0,depthSplitCount):
                             numb = "_"+str(i) +"_"+str(j)
                             addrSplitLogic = ""
-                            addrSplitLogic +=  " assign addr" + numb + "[" + newAddr+":0] = addr["+newAddr +":0] \n"
-                            addrSplitLogic +=  " assign rdData" + numb + "[" + newWidthStr + ":0] = rdData[" + newWidthStr + ":0] \n"
-                            addrSplitLogic +=  " assign wrData" + numb + "[" + newWidthStr + ":0] = wrData[" + newWidthStr + ":0] \n"
+                            addrSplitLogic +=  " assign addr" + numb + "[" + newAddr+":0] = addr["+newAddr +":0] ;\n"
+                            addrSplitLogic +=  " assign rdData" + numb + "[" + newWidthStr + ":0] = rdData[" + newWidthStr + ":0] ; \n"
+                            addrSplitLogic +=  " assign wrData" + numb + "[" + newWidthStr + ":0] = wrData[" + newWidthStr + ":0] ; \n"
 
                             instMemLogic = tsmc1prfModel
                             instMemLogic = instMemLogic.replace("_width_",newWidthStr)
@@ -150,14 +156,26 @@ with open(memConfig,"r") as fin:
 
                             tsmcMemLogic +=  addrSplitLogic + instMemLogic
                     enSplitLogic = ""
-                    enSplitLogic += "case(addr["+ width +":"+str(int(width)-int(newWidth)) + "]\n"
-                    for i in range(0,widthSplitCount):
-                        for j in range(0,depthSplitCount):
-                            enSplitLogic += str(depthSplitCount) + "\'d:\n"
 
+                    csSelWidth = math.ceil(math.log(depthSplitCount,2))
+
+                    ### first loop depth ,then loop width
+                    print("splitted into ", widthSplitCount)
+                    enSplitLogic += "  case(addr[" + addrSize + ":" + str(int(addrSize) - int(csSelWidth) + 1) + "])\n"
+                    for i in range(0,depthSplitCount):
+                        enSplitLogic += "    " + str(csSelWidth) + "\'d" + str(i) + "：\n"
+                        enSplitLogic += "    begin \n"
+                        for j in range(0,widthSplitCount):
+                            numb = "_"+str(i) +"_"+str(j)
+                            enSplitLogic += "       assign wrEn" +numb + "=wrEn ;\n"
+                            enSplitLogic += "       assign csEn" +numb + "=csEn ;\n"
+                            enSplitLogic += "       assign " + "rdData" + "[" + str(
+                                newWidth * (j + 1) - 1) + ":" + str(newWidth * j) + "] = rdData"+numb + ";\n"
+                        enSplitLogic += "    end\n"
+                    enSplitLogic += "  endcase\n"
 
                             #print(tsmcMemLogic)
-                    targetRam = targetRam.replace("T28HPCP_TSMC_SRAM_MODEL",dataSplitLogic + tsmcMemLogic)
+                    targetRam = targetRam.replace("T28HPCP_TSMC_SRAM_MODEL",dataSplitLogic + enSplitLogic + tsmcMemLogic)
                     fout.write(targetRam)
 
                 elif int(port) == 2 :
