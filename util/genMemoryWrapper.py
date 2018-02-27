@@ -118,9 +118,6 @@ with open(memConfig,"r") as fin:
                     widthSplitCount = math.ceil(int(width) / tsmc1pMaxWidth)
                     depthSplitCount = math.ceil(int(depth) / tsmc1pMaxDepth)
 
-
-
-
                     tsmcMemLogic = ""
                     newWidth = int(math.ceil(int(width)/widthSplitCount / 2) * 2)
                     newDepth = int(math.ceil(int(depth)/depthSplitCount / 2) * 2)
@@ -132,7 +129,7 @@ with open(memConfig,"r") as fin:
                     dataSplitLogic = ""
 
                     for i in range(0,widthSplitCount):
-                        addrSplitLogic = ""
+
                         instMemLogic = ""
 
                         dataSplitLogic += " assign " + "wrData"+str(i) + "[" + str(newWidth-1)+ ":0] = wrData[" +str(newWidth*(i+1) -1)+":"+str(newWidth*i) + "]\n"
@@ -141,6 +138,7 @@ with open(memConfig,"r") as fin:
 
                         for j in range(0,depthSplitCount):
                             numb = "_"+str(i) +"_"+str(j)
+                            addrSplitLogic = ""
                             addrSplitLogic +=  " assign addr" + numb + "[" + newAddr+":0] = addr["+newAddr +":0] \n"
                             addrSplitLogic +=  " assign rdData" + numb + "[" + newWidthStr + ":0] = rdData[" + newWidthStr + ":0] \n"
                             addrSplitLogic +=  " assign wrData" + numb + "[" + newWidthStr + ":0] = wrData[" + newWidthStr + ":0] \n"
@@ -151,6 +149,13 @@ with open(memConfig,"r") as fin:
                             instMemLogic = instMemLogic.replace("_N_", numb)
 
                             tsmcMemLogic +=  addrSplitLogic + instMemLogic
+                    enSplitLogic = ""
+                    enSplitLogic += "case(addr["+ width +":"+str(int(width)-int(newWidth)) + "]\n"
+                    for i in range(0,widthSplitCount):
+                        for j in range(0,depthSplitCount):
+                            enSplitLogic += str(depthSplitCount) + "\'d:\n"
+
+
                             #print(tsmcMemLogic)
                     targetRam = targetRam.replace("T28HPCP_TSMC_SRAM_MODEL",dataSplitLogic + tsmcMemLogic)
                     fout.write(targetRam)
