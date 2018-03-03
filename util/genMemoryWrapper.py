@@ -30,13 +30,13 @@ output [width-1:0] rdData;
     T28HPCP_SNPS_SRAM_MODEL
 `else 
    reg [WordSize-1:0] Mem [0:width-1];
-   reg [width-1:0]  rdDataReg
+   reg [width-1:0]  rdDataReg;
    always @(posedge clk)
        if (csEn)
            if (wrEn)
                Mem[addr] = wrData ;
            else
-               rdData = Mem[addr];
+               rdDataReg = Mem[addr];
        else
            rdDataReg = WordSize'b0;
     assign rdData = rdDataReg;
@@ -45,25 +45,25 @@ endmodule
 '''
 
 ram2p = '''
-module prefix_portP_depthW_widthB_bwebBM ( clk, wrEn, rdEn, wrAddr, rdAddr, wrData, rdData, wrMask) ;
+module prefix_portP_depthW_widthB_bwebBM ( clk, wrEn, rdEn, sd, slp, wrAddr, rdAddr, wrData, rdData, wrMask) ;
 //parameter AddressSize = width;
 //parameter WordSize = depth;
 //parameter bitMask = bweb;
 
 input clk,rdEn, wrEn;
 input sd, slp;
-input [AddressSize-1:0] wrAddr;
+input [AddressSize:0] wrAddr;
 input [width-1:0] wrData, wrMask;
 
-input [AddressSize-1:0] rdAddr;
+input [AddressSize:0] rdAddr;
 reg [width-1:0] rdDataReg;
 output [width-1:0] rdData;
 
 
-`ifdef TSMC28HPCP_SRAM
-    T28HPCP_TSMC_SRAM_MODEL
-`elsif SNPS28HPC_SRAM
-    T28HPCP_TSMC_SRAM_MODEL
+`ifdef T28HPCP_TSMC_SRAM
+T28HPCP_TSMC_SRAM_MODEL
+`elsif SNPS28HPC_SRAM    
+T28HPCP_SNPS_SRAM_MODEL
 `else 
 
 reg [WordSize-1:0] memory [AddressSize-1:0] ;
@@ -104,7 +104,7 @@ tsmc1prfModel = '''
 tsmc2prfModel = '''
   TS6N28HPCPSVTA_depth_X_width_M4S ram_N_(.CLKR(clk), 
                                    .CLKW(clk),
-                                   .REB(csEn_N_), 
+                                   .REB(rdEn_N_), 
                                    .WEB(wrEn_N_),
                                    .SLP(slp),
                                    .SD(sd),
@@ -127,8 +127,7 @@ with open(memConfig,"r") as fin:
         preFix,port,depth,width,bweb = file.rstrip().split(',')
 
         if preFix.find("prefix") < 0:
-            addrSize = str(math.ceil(math.log2(int(depth))))
-
+            addrSize = str(math.ceil(math.log2(int(depth))) -1)
             ramName = outDir+preFix+"_"+port+"P_"+depth+"W_"+width+"B_"+bweb+"BM"
             with open(ramName+".v","w") as fout:
                 if int(port) == 1 :
@@ -154,14 +153,20 @@ with open(memConfig,"r") as fin:
                     newAddr = str(int(int(addrSize) - math.log(depthSplitCount,2)))
                     dataSplitLogic = ""
 
+                    wireDeclare = ""
+
                     for i in range(0,widthSplitCount):
 
                         instMemLogic = ""
                         for j in range(0,depthSplitCount):
                             numb = "_"+str(i) +"_"+str(j)
+                            wireDeclare += "    wire addr" +numb +";\n"
+                            wireDeclare += "    wire " + "[" + newWidthStr + ":0]  rdData" + numb +";\n"
+                            wireDeclare += "    wire " + "[" + newWidthStr + ":0]  wrData" + numb + ";\n"
+
                             addrSplitLogic = ""
                             addrSplitLogic +=  " assign addr" + numb + "[" + newAddr+":0] = addr["+newAddr +":0] ;\n"
-                            addrSplitLogic +=  " assign rdData" + numb + "[" + newWidthStr + ":0] = rdData[" + newWidthStr + ":0] ; \n"
+                            addrSplitLogic +=  " assign rdData[" + newWidthStr + ":0] = rdData" + numb + "[" + newWidthStr + ":0] ; \n"
                             addrSplitLogic +=  " assign wrData" + numb + "[" + newWidthStr + ":0] = wrData[" + newWidthStr + ":0] ; \n"
 
                             instMemLogic = tsmc1prfModel
@@ -175,13 +180,16 @@ with open(memConfig,"r") as fin:
                     csSelWidth = math.ceil(math.log(depthSplitCount,2))
 
                     ### first loop depth ,then loop width
-                    print("splitted into ", widthSplitCount)
+                    #print("splitted into ", widthSplitCount)
                     enSplitLogic += "  case(addr[" + addrSize + ":" + str(int(addrSize) - int(csSelWidth) + 1) + "])\n"
                     for i in range(0,depthSplitCount):
-                        enSplitLogic += "    " + str(csSelWidth) + "\'d" + str(i) + "：\n"
+                        enSplitLogic += "    " + str(csSelWidth) + "\'d" + str(i) + ":\n"
                         enSplitLogic += "    begin \n"
                         for j in range(0,widthSplitCount):
-                            numb = "_"+str(i) +"_"+str(j)
+                            numb = "_"+str(j) +"_"+str(i)
+                            wireDeclare += "    wire wrEn" +numb + ";\n"
+                            wireDeclare += "    wire csEn" + numb + ";\n"
+
                             enSplitLogic += "       assign wrEn" +numb + "=wrEn ;\n"
                             enSplitLogic += "       assign csEn" +numb + "=csEn ;\n"
                             enSplitLogic += "       assign " + "rdData" + "[" + str(
@@ -190,7 +198,7 @@ with open(memConfig,"r") as fin:
                     enSplitLogic += "  endcase\n"
 
                             #print(tsmcMemLogic)
-                    targetRam = targetRam.replace("T28HPCP_TSMC_SRAM_MODEL",dataSplitLogic + enSplitLogic + tsmcMemLogic)
+                    targetRam = targetRam.replace("T28HPCP_TSMC_SRAM_MODEL",wireDeclare + dataSplitLogic + enSplitLogic + tsmcMemLogic)
                     fout.write(targetRam)
 
                 elif int(port) == 2 :
@@ -213,17 +221,24 @@ with open(memConfig,"r") as fin:
                     newWidthStr = str(newWidth)
                     newDepthStr = str(newDepth)
 
-                    newAddr = str(int(int(addrSize) - math.log(depthSplitCount, 2)))
+                    newAddr = str(int(int(addrSize) - math.log(depthSplitCount, 2)  ))
                     dataSplitLogic = ""
+                    wireDeclare = ""
 
                     for i in range(0, widthSplitCount):
 
                         instMemLogic = ""
                         for j in range(0, depthSplitCount):
                             numb = "_" + str(i) + "_" + str(j)
+                            wireDeclare += "    wire addr" + numb + ";\n"
+                            wireDeclare += "    wire rdData" + numb + ";\n"
+                            wireDeclare += "    wire wrData" + numb + ";\n"
+                            wireDeclare += "    wire" + "[" + newAddr + ":0]   addrR" + numb  + ";\n"
+                            wireDeclare += "    wire" + "[" + newAddr + ":0]   addrW" + numb  + ";\n"
+
                             addrSplitLogic = ""
-                            addrSplitLogic += " assign addrR" + numb + "[" + newAddr + ":0] = addrR[" + newAddr + ":0] ;\n"
-                            addrSplitLogic += " assign addrW" + numb + "[" + newAddr + ":0] = addrW[" + newAddr + ":0] ;\n"
+                            addrSplitLogic += " assign addrR" + numb + "[" + newAddr + ":0] = rdAddr[" + newAddr + ":0] ;\n"
+                            addrSplitLogic += " assign addrW" + numb + "[" + newAddr + ":0] = wrAddr[" + newAddr + ":0] ;\n"
 
                             addrSplitLogic += " assign rdData" + numb + "[" + newWidthStr + ":0] = rdData[" + newWidthStr + ":0] ; \n"
                             addrSplitLogic += " assign wrData" + numb + "[" + newWidthStr + ":0] = wrData[" + newWidthStr + ":0] ; \n"
@@ -234,30 +249,43 @@ with open(memConfig,"r") as fin:
                             instMemLogic = instMemLogic.replace("_N_", numb)
 
                             tsmcMemLogic += addrSplitLogic + instMemLogic
-                    enSplitLogic = ""
+                    wrEnSplitLogic = ""
+                    rdEnSplitLogic = ""
 
                     csSelWidth = math.ceil(math.log(depthSplitCount, 2))
 
                     ### first loop depth ,then loop width
-                    print("splitted into ", widthSplitCount)
-                    enSplitLogic += "  case(addr[" + addrSize + ":" + str(int(addrSize) - int(csSelWidth) + 1) + "])\n"
+                    #print("splitted into ", widthSplitCount)
+                    rdEnSplitLogic += "  case (rdAddr[" + addrSize + ":" + str(int(addrSize) - int(csSelWidth) + 1) + "])\n"
+                    wrEnSplitLogic += "  case (wrAddr[" + addrSize + ":" + str(
+                        int(addrSize) - int(csSelWidth) + 1) + "])\n"
                     for i in range(0, depthSplitCount):
-                        enSplitLogic += "    " + str(csSelWidth) + "\'d" + str(i) + "：\n"
-                        enSplitLogic += "    begin \n"
+                        rdEnSplitLogic += "    " + str(csSelWidth) + "\'d" + str(i) + ":\n"
+                        wrEnSplitLogic += "    " + str(csSelWidth) + "\'d" + str(i) + ":\n"
+                        rdEnSplitLogic += "    begin \n"
+                        wrEnSplitLogic += "    begin \n"
                         for j in range(0, widthSplitCount):
-                            numb = "_" + str(i) + "_" + str(j)
-                            enSplitLogic += "       assign wrEn" + numb + "=wrEn ;\n"
-                            enSplitLogic += "       assign csEn" + numb + "=csEn ;\n"
-                            enSplitLogic += "       assign " + "rdData" + "[" + str(
-                                newWidth * (j + 1) - 1) + ":" + str(newWidth * j) + "] = rdData" + numb + ";\n"
-                        enSplitLogic += "    end\n"
-                    enSplitLogic += "  endcase\n"
+                            numb = "_" + str(j) + "_" + str(i)
+                            wireDeclare  += "    wire wrEn" + numb +";\n"
+                            wireDeclare += "    wire rdEn" + numb + ";\n"
 
+                            rdEnSplitLogic += "       assign rdEn" + numb + "=rdEn ;\n"
+                            wrEnSplitLogic += "       assign wrEn" + numb + "=wrEn ;\n"
+
+                            rdEnSplitLogic += "       assign " + "rdData" + "[" + str(
+                                newWidth * (j + 1) - 1) + ":" + str(newWidth * j) + "] = rdData" + numb + ";\n"
+                            wrEnSplitLogic += "       assign "  + "wrData" + numb + " = wrData" + "[" + str(
+                                newWidth * (j + 1) - 1) + ":" + str(newWidth * j) + "]  ;\n"
+
+                        rdEnSplitLogic += "    end\n"
+                        wrEnSplitLogic += "    end\n"
+
+
+                    rdEnSplitLogic += "  endcase\n"
+                    wrEnSplitLogic += "  endcase\n"
                     # print(tsmcMemLogic)
                     targetRam = targetRam.replace("T28HPCP_TSMC_SRAM_MODEL",
-                                                  dataSplitLogic + enSplitLogic + tsmcMemLogic)
-                    fout.write(targetRam)
-
+                                                  wireDeclare + dataSplitLogic + rdEnSplitLogic  + wrEnSplitLogic + tsmcMemLogic)
                     fout.write(targetRam)
                 else:
                     print(port)
