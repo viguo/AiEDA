@@ -1,3 +1,4 @@
+#!/tools/python/anaconda3/bin/python3
 import os, sys,glob,re,stat
 import pyLib
 import math
@@ -147,8 +148,8 @@ with open(memConfig,"r") as fin:
                     newWidth = int(math.ceil(int(width)/widthSplitCount / 2) * 2)
                     newDepth = int(math.ceil(int(depth)/depthSplitCount / 2) * 2)
 
-                    newWidthStr = str(newWidth)
-                    newDepthStr = str(newDepth)
+                    newWidthStr = str(newWidth-1)
+                    newDepthStr = str(newDepth-1)
 
                     newAddr = str(int(int(addrSize) - math.log(depthSplitCount,2)))
                     dataSplitLogic = ""
