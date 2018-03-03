@@ -7,7 +7,7 @@ import platform
 if ( (os.uname()[0]) == "Darwin" ) :
     outDir = "/Users/guoyapeng/work/DLM1/hw/rtl/rams/"
 else:
-    outDir = "/home/yaguo/works/pnr/1.mem/"
+    outDir = "./"
 
 #memConfig = "/Users/guoyapeng/work/DLM1/hw/memList.csv"
 memConfig = "./memList.csv"
