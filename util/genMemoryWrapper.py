@@ -1,6 +1,6 @@
 #!/tools/python/anaconda3/bin/python3
 import os, sys,glob,re,stat
-import pyLib
+#import pyLib
 import math
 import platform
 
@@ -14,12 +14,13 @@ memConfig = "./memList.csv"
 
 print("outputs to ", outDir)
 ram1p = '''
-module prefix_portP_depthW_widthB_bwebBM (clk, wrEn, csEn, addr, wrData, rdData,sd,slp);
+module prefix_portP_depthW_widthB_bwebBM (clk, wrEn, csEn, sd,slp, addr, wrData, rdData, wrMask);
 //parameter AddressSize = width;
 //parameter WordSize = depth;
 
-input  [AddressSize-1:0] addr;
-input  [width-1:0] wrData;
+input  [AddressSize:0] addr;
+input  [width-1:0] wrData , wrMask;
+
 input  clk, wrEn, csEn;
 input  sd, slp;
 output [width-1:0] rdData;
@@ -30,14 +31,25 @@ output [width-1:0] rdData;
 `elsif SNPS28HPC_SRAM
     T28HPCP_SNPS_SRAM_MODEL
 `else 
-   reg [WordSize-1:0] Mem [0:width-1];
+   reg [WordSize-1:0] memory [0:width-1];
    reg [width-1:0]  rdDataReg;
+   
+   wire [width-1:0] wrDataTemp;
+
+genvar wrBit;
+generate
+  for (wrBit=0; wrBit < bitMask ; wrBit = wrBit + 1 ) 
+    begin : write_ram_data
+      assign wrDataTemp[wrBit] = wrMask[wrBit] ? wrData[wrBit] : memory[wrAddr][wrBit] ;
+    end
+endgenerate
+
    always @(posedge clk)
        if (csEn)
            if (wrEn)
-               Mem[addr] = wrData ;
+               memory[addr] = wrDataTemp ;
            else
-               rdDataReg = Mem[addr];
+               rdDataReg = memory[addr];
        else
            rdDataReg = WordSize'b0;
     assign rdData = rdDataReg;
@@ -139,6 +151,7 @@ with open(memConfig,"r") as fin:
                     targetRam = targetRam.replace("WordSize",depth)
                     targetRam = targetRam.replace("AddressSize",addrSize)
                     targetRam = targetRam.replace("bweb",bweb)
+                    targetRam = targetRam.replace("bitMask", bweb)
                     ### insert tsmc memory
 
                     widthSplitCount = math.ceil(int(width) / tsmc1pMaxWidth)
