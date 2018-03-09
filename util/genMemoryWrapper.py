@@ -15,8 +15,9 @@ memConfig = "./memList.csv"
 print("outputs to ", outDir)
 ram1p = '''
 module prefix_portP_depthW_widthB_bwebBM (clk, wrEn, csEn, sd,slp, addr, wrData, rdData, wrMask);
-//parameter AddressSize = width;
-//parameter WordSize = depth;
+//W is word : depth
+//B is bit  : width
+//BM is bitMask : bweb
 
 input  [AddressSize:0] addr;
 input  [width-1:0] wrData , wrMask;
@@ -31,7 +32,7 @@ output [width-1:0] rdData;
 `elsif SNPS28HPC_SRAM
     T28HPCP_SNPS_SRAM_MODEL
 `else 
-   reg [WordSize-1:0] memory [0:width-1];
+   reg [width-1:0] memory [depth-1:0];
    reg [width-1:0]  rdDataReg;
    
    wire [width-1:0] wrDataTemp;
@@ -59,9 +60,10 @@ endmodule
 
 ram2p = '''
 module prefix_portP_depthW_widthB_bwebBM ( clk, wrEn, rdEn, sd, slp, wrAddr, rdAddr, wrData, rdData, wrMask) ;
-//parameter AddressSize = width;
-//parameter WordSize = depth;
-//parameter bitMask = bweb;
+//W is word : depth
+//B is bit  : width
+//BM is bit mask : bweb
+
 
 input clk,rdEn, wrEn;
 input sd, slp;
@@ -79,7 +81,8 @@ T28HPCP_TSMC_SRAM_MODEL
 T28HPCP_SNPS_SRAM_MODEL
 `else 
 
-reg [WordSize-1:0] memory [AddressSize-1:0] ;
+reg [width-1:0] memory [depth-1:0] ;
+
 
 wire [width-1:0] wrDataTemp;
 
