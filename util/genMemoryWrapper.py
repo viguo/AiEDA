@@ -17,7 +17,7 @@ ram1p = '''
 module prefix_portP_depthW_widthB_bwebBM (clk, wrEn, csEn, sd,slp, addr, wrData, rdData, wrMask);
 //W is word : depth
 //B is bit  : width
-//BM is bitMask : bweb
+//BM is bit mask : bweb
 
 input  [AddressSize:0] addr;
 input  [width-1:0] wrData , wrMask;
@@ -41,7 +41,7 @@ genvar wrBit;
 generate
   for (wrBit=0; wrBit < bitMask ; wrBit = wrBit + 1 ) 
     begin : write_ram_data
-      assign wrDataTemp[wrBit] = wrMask[wrBit] ? wrData[wrBit] : memory[wrAddr][wrBit] ;
+      assign wrDataTemp[wrBit] = wrMask[wrBit] ? wrData[wrBit] : memory[addr][wrBit] ;
     end
 endgenerate
 
