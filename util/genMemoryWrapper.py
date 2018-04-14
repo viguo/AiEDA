@@ -1,24 +1,27 @@
+#!/tools/python/anaconda3/bin/python3
 import os, sys,glob,re,stat
-import pyLib
+#import pyLib
 import math
 import platform
 
 if ( (os.uname()[0]) == "Darwin" ) :
     outDir = "/Users/guoyapeng/work/DLM1/hw/rtl/rams/"
 else:
-    outDir = "/home/yaguo/works/pnr/1.mem/"
+    outDir = "./"
 
 #memConfig = "/Users/guoyapeng/work/DLM1/hw/memList.csv"
 memConfig = "./memList.csv"
 
 print("outputs to ", outDir)
 ram1p = '''
-module prefix_portP_depthW_widthB_bwebBM (clk, wrEn, csEn, addr, wrData, rdData,sd,slp);
-//parameter AddressSize = width;
-//parameter WordSize = depth;
+module prefix_portP_depthW_widthB_bwebBM (clk, wrEn, csEn, sd,slp, addr, wrData, rdData, wrMask);
+//W is word : depth
+//B is bit  : width
+//BM is bit mask : bweb
 
-input  [AddressSize-1:0] addr;
-input  [width-1:0] wrData;
+input  [AddressSize:0] addr;
+input  [width-1:0] wrData , wrMask;
+
 input  clk, wrEn, csEn;
 input  sd, slp;
 output [width-1:0] rdData;
@@ -29,14 +32,25 @@ output [width-1:0] rdData;
 `elsif SNPS28HPC_SRAM
     T28HPCP_SNPS_SRAM_MODEL
 `else 
-   reg [WordSize-1:0] Mem [0:width-1];
+   reg [width-1:0] memory [depth-1:0];
    reg [width-1:0]  rdDataReg;
+   
+   wire [width-1:0] wrDataTemp;
+
+genvar wrBit;
+generate
+  for (wrBit=0; wrBit < bitMask ; wrBit = wrBit + 1 ) 
+    begin : write_ram_data
+      assign wrDataTemp[wrBit] = wrMask[wrBit] ? wrData[wrBit] : memory[addr][wrBit] ;
+    end
+endgenerate
+
    always @(posedge clk)
        if (csEn)
            if (wrEn)
-               Mem[addr] = wrData ;
+               memory[addr] = wrDataTemp ;
            else
-               rdDataReg = Mem[addr];
+               rdDataReg = memory[addr];
        else
            rdDataReg = WordSize'b0;
     assign rdData = rdDataReg;
@@ -46,9 +60,10 @@ endmodule
 
 ram2p = '''
 module prefix_portP_depthW_widthB_bwebBM ( clk, wrEn, rdEn, sd, slp, wrAddr, rdAddr, wrData, rdData, wrMask) ;
-//parameter AddressSize = width;
-//parameter WordSize = depth;
-//parameter bitMask = bweb;
+//W is word : depth
+//B is bit  : width
+//BM is bit mask : bweb
+
 
 input clk,rdEn, wrEn;
 input sd, slp;
@@ -66,7 +81,8 @@ T28HPCP_TSMC_SRAM_MODEL
 T28HPCP_SNPS_SRAM_MODEL
 `else 
 
-reg [WordSize-1:0] memory [AddressSize-1:0] ;
+reg [width-1:0] memory [depth-1:0] ;
+
 
 wire [width-1:0] wrDataTemp;
 
@@ -138,6 +154,7 @@ with open(memConfig,"r") as fin:
                     targetRam = targetRam.replace("WordSize",depth)
                     targetRam = targetRam.replace("AddressSize",addrSize)
                     targetRam = targetRam.replace("bweb",bweb)
+                    targetRam = targetRam.replace("bitMask", bweb)
                     ### insert tsmc memory
 
                     widthSplitCount = math.ceil(int(width) / tsmc1pMaxWidth)
@@ -147,8 +164,8 @@ with open(memConfig,"r") as fin:
                     newWidth = int(math.ceil(int(width)/widthSplitCount / 2) * 2)
                     newDepth = int(math.ceil(int(depth)/depthSplitCount / 2) * 2)
 
-                    newWidthStr = str(newWidth)
-                    newDepthStr = str(newDepth)
+                    newWidthStr = str(newWidth-1)
+                    newDepthStr = str(newDepth-1)
 
                     newAddr = str(int(int(addrSize) - math.log(depthSplitCount,2)))
                     dataSplitLogic = ""
@@ -218,8 +235,8 @@ with open(memConfig,"r") as fin:
                     newWidth = int(math.ceil(int(width) / widthSplitCount / 2) * 2)
                     newDepth = int(math.ceil(int(depth) / depthSplitCount / 2) * 2)
 
-                    newWidthStr = str(newWidth)
-                    newDepthStr = str(newDepth)
+                    newWidthStr = str(newWidth-1)
+                    newDepthStr = str(newDepth-1)
 
                     newAddr = str(int(int(addrSize) - math.log(depthSplitCount, 2)  ))
                     dataSplitLogic = ""
