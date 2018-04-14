@@ -1,23 +1,29 @@
 import os, sys,glob,re,stat
 import pyLib
 
-memList = ["128x64","256x64","512x64","1024x64","128x128","256x128","512x128","1024x128","128x256","256x256"]
-memList = ["128x256", \
-           "128x64", \
-           "512x64", \
-           "256x128", \
-           "128x128", \
-           "1026x64", \
+
+memList = ["128x128",\
+           "128x64",\
+           "512x64",\
+           "256x128",\
+           "64x128",\
+           "512x32",\
            "256x32",\
-           "256x64", \
+           "256x64",\
+           "256x66",\
            "32x128",\
-           "64x128", \
-           "64x64", \
-           "32x144" \
-           "32x128" \
-            ]
+           "64x144",\
+           "64x64",\
+           "64x98",\
+           "32x144",\
+           "32x128",\
+           "1024x32",\
+           "128x64",\
+           "1024x64"\
+           ]
+#memList = ["512x32","32x64","64x98","32x144","32x128","256x66","32x44"]
 compilerName = {}
-#compilerName["1prf"] = "tsn28hpcp1prf_20120200_130a"
+compilerName["1prf"] = "tsn28hpcp1prf_20120200_130a"
 compilerName["2prf"]  = "tsn28hpcp2prf_20120200_130a"
 #compilerName["spsram"] = "tsn28hpcpd127spsram_20120200_130a"
 #compilerName["uhdspsram"] = "tsn28hpcpuhdspsram_20120200_170a"
@@ -81,8 +87,8 @@ for k, v in compilerName.items():
     if compiler.find("dpsram") > -1:
         os.system(compiler + " -NonBIST  ")
     else:
-        os.system(compiler + " -LVT -NonBIST   ")
-        os.system(compiler + " -SVT -NonBIST  ")
+        #os.system(compiler + " -LVT    ")
+        os.system(compiler + " -SVT   ")
 
 
     for cfgFile in glob.glob("t*.cfg"):
