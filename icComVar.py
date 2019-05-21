@@ -209,7 +209,7 @@ history         =  pp.Group("HISTORY" + hierName + SEMICOLON)
 
 #NETS
 #NETS is partical supported
-taper        = pp.Group("TAPER")
+#taper        = pp.Group("TAPER")
 routePoint   = pp.Group( pp.OneOrMore(pp.OneOrMore(orig) + pp.Optional(maskLayer)) + hierName)
 routeWire    = pp.Group(PLUS + wireState +
                         layerName + pp.Optional("TAPER") +
